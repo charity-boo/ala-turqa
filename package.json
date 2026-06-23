@@ -1,0 +1,13 @@
+{
+  "name": "ala-turqa-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix server & npm run dev --prefix client",
+    "install:all": "npm install --prefix server && npm install --prefix client"
+  },
+  "dependencies": {
+    "firebase": "^12.15.0",
+    "playwright": "^1.61.0"
+  }
+}
