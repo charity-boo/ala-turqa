@@ -1,13 +1,17 @@
 export const MENU_CATEGORIES = [
+  "Pastries & Snacks",
   "Breakfast",
-  "Grill & BBQ",
+  "Home Cooked Meals",
+  "Grills & Main Courses",
   "Burgers",
-  "Turkish Main Meals",
-  "Turkish Pan Specials",
-  "Pizza & Pide",
-  "Appetizers & Salads",
-  "Ala Turqa Bites",
+  "Shawarma",
+  "Rotisserie Chicken",
+  "Pizza & Turkish Specials",
+  "Salad & Pasta",
+  "Sides",
+  "Middle Eastern Specials",
   "Desserts",
-  "Turkish Specials",
-  "Drinks"
+  "Beverages",
+  "Coffees & Hot Drinks",
+  "Mocktails"
 ];

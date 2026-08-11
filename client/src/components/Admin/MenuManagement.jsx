@@ -4,6 +4,7 @@ import AddMenuItemModal from './AddMenuItemModal';
 import EditMenuItemModal from './EditMenuItemModal';
 import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaDatabase } from 'react-icons/fa';
 import { seedMenuDatabase } from '../../utils/seedData';
+import { formatPrice } from '../../utils/priceFormatter';
 
 const MenuManagement = () => {
   const [items, setItems] = useState([]);
@@ -125,7 +126,7 @@ const MenuManagement = () => {
                     </td>
                     <td className="fw-bold" style={{ fontFamily: '"Poppins", sans-serif' }}>{item.name}</td>
                     <td>{item.category}</td>
-                    <td style={{ color: '#C9A227' }}>${Number(item.price).toFixed(2)}</td>
+                    <td style={{ color: '#C9A227' }}>{formatPrice(item.price, item.displayPrice)}</td>
                     <td>
                       <button
                         className={`btn btn-sm ${item.available ? 'btn-success' : 'btn-danger'}`}

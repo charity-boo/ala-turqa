@@ -4,7 +4,6 @@ import CategoryTabs from '../../components/Menu/CategoryTabs';
 import MenuFilters from '../../components/Menu/MenuFilters';
 import MenuCard from '../../components/Menu/MenuCard';
 import { getAllMenuItems } from '../../services/menuService';
-import { seedMenuDatabase } from '../../utils/seedData';
 import { FaDatabase } from 'react-icons/fa';
 
 
@@ -19,7 +18,6 @@ const Menu = () => {
     vegetarian: false,
     spicy: false
   });
-  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
 
@@ -35,20 +33,6 @@ const Menu = () => {
       console.error("Failed to fetch menu items", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSeed = async () => {
-    if (window.confirm("Are you sure you want to seed the database?")) {
-      setIsSeeding(true);
-      const result = await seedMenuDatabase();
-      setIsSeeding(false);
-      if (result.success) {
-        alert("Database seeded successfully!");
-        fetchItems(); // refresh the list
-      } else {
-        alert("Failed to seed database.");
-      }
     }
   };
 
@@ -81,15 +65,6 @@ const Menu = () => {
           <h1 className="text-center mb-0" style={{ fontFamily: '"Playfair Display", serif', color: '#C9A227', fontWeight: 'bold' }}>
             Our Menu
           </h1>
-          {items.length === 0 && (
-            <button 
-              className="btn btn-outline-warning position-absolute end-0"
-              onClick={handleSeed}
-              disabled={isSeeding}
-            >
-              <FaDatabase className="me-2" /> {isSeeding ? 'Seeding...' : 'DEV: Seed Database'}
-            </button>
-          )}
         </div>
         
         <MenuSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />

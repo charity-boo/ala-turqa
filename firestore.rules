@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    match /menu/{menuId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      // Anyone can create an order (guest checkout)
+      allow create: if true;
+      // Users can read if they own it or if admin
+      allow read: if (isAuthenticated() && request.auth.uid == resource.data.userId) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      // Anyone can create a payment intent
+      allow create: if true;
+      // Anyone can read a payment (needed for polling by checkoutRequestId)
+      allow read: if true;
+      // Only backend updates payments via Admin SDK (bypasses rules)
+      allow update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}

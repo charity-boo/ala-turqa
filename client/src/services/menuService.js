@@ -4,18 +4,45 @@ import {
   getDoc, 
   doc, 
   addDoc, 
+  setDoc,
   updateDoc, 
   deleteDoc, 
   query, 
   where,
-  serverTimestamp
+  serverTimestamp,
+  limit
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { seedMenuDatabase } from "../utils/seedData";
+import { generateSlug } from "../utils/idGenerator";
 
 const COLLECTION_NAME = "menu";
 
+let initPromise = null;
+
+const ensureInitialized = async () => {
+  if (!initPromise) {
+    initPromise = (async () => {
+      try {
+        const menuRef = collection(db, COLLECTION_NAME);
+        const q = query(menuRef, limit(1));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+          console.log("Menu collection empty. Auto-seeding initial data...");
+          await seedMenuDatabase();
+        }
+      } catch (error) {
+        console.error("Error ensuring initialization:", error);
+        initPromise = null; // Allow retry on failure
+      }
+    })();
+  }
+  return initPromise;
+};
+
 export const getAllMenuItems = async () => {
   try {
+    await ensureInitialized();
     const menuRef = collection(db, COLLECTION_NAME);
     const snapshot = await getDocs(menuRef);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -27,6 +54,7 @@ export const getAllMenuItems = async () => {
 
 export const getMenuItemById = async (id) => {
   try {
+    await ensureInitialized();
     const docRef = doc(db, COLLECTION_NAME, id);
     const snapshot = await getDoc(docRef);
     if (snapshot.exists()) {
@@ -42,6 +70,7 @@ export const getMenuItemById = async (id) => {
 
 export const getFeaturedItems = async () => {
   try {
+    await ensureInitialized();
     const menuRef = collection(db, COLLECTION_NAME);
     const q = query(menuRef, where("featured", "==", true));
     const snapshot = await getDocs(q);
@@ -54,6 +83,7 @@ export const getFeaturedItems = async () => {
 
 export const getItemsByCategory = async (category) => {
   try {
+    await ensureInitialized();
     const menuRef = collection(db, COLLECTION_NAME);
     const q = query(menuRef, where("category", "==", category));
     const snapshot = await getDocs(q);
@@ -66,6 +96,7 @@ export const getItemsByCategory = async (category) => {
 
 export const searchMenuItems = async (searchTerm) => {
   try {
+    await ensureInitialized();
     const menuRef = collection(db, COLLECTION_NAME);
     const snapshot = await getDocs(menuRef);
     const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -83,14 +114,15 @@ export const searchMenuItems = async (searchTerm) => {
 
 export const createMenuItem = async (data) => {
   try {
-    const menuRef = collection(db, COLLECTION_NAME);
+    const slug = data.name ? generateSlug(data.name) : `menu-${Date.now()}`;
+    const docRef = doc(db, COLLECTION_NAME, slug);
     const newData = {
       ...data,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
-    const docRef = await addDoc(menuRef, newData);
-    return { id: docRef.id, ...newData };
+    await setDoc(docRef, newData);
+    return { id: slug, ...newData };
   } catch (error) {
     console.error("Error creating menu item: ", error);
     throw error;

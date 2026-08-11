@@ -12,6 +12,7 @@ app.use(express.json());
 // app.use('/api/menu', require('./routes/menuRoutes'));
 // app.use('/api/orders', require('./routes/orderRoutes'));
 // app.use('/api/reservations', require('./routes/reservationRoutes'));
+app.use('/api/payment/mpesa', require('./routes/mpesaRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Ala Turqa API is running');
