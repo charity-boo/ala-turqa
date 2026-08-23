@@ -39,7 +39,6 @@ const MobileMenu = ({ isOpen, setIsOpen }) => {
           <nav className="d-flex flex-column py-2">
             <NavLink to="/" className="mobile-nav-link" onClick={handleLinkClick}>Home</NavLink>
             <NavLink to="/menu" className="mobile-nav-link" onClick={handleLinkClick}>Menu</NavLink>
-            <NavLink to="/gallery" className="mobile-nav-link" onClick={handleLinkClick}>Gallery</NavLink>
             <NavLink to="/reservations" className="mobile-nav-link" onClick={handleLinkClick}>Reservations</NavLink>
             <NavLink to="/contact" className="mobile-nav-link" onClick={handleLinkClick}>Contact</NavLink>
             

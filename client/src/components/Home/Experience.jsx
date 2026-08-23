@@ -18,9 +18,6 @@ const Experience = () => {
             <h2 className="display-6 text-white mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
               A warm Turkish dining experience in the heart of Nairobi.
             </h2>
-            <Link to="/gallery" className="btn btn-outline-gold align-self-lg-start mt-2">
-              View Gallery
-            </Link>
           </div>
         </div>
       </div>

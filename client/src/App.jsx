@@ -9,13 +9,12 @@ import PrivateRoute from './components/PrivateRoute';
 import Home from './pages/Home/Home';
 import Menu from './pages/Menu/Menu';
 import Reservations from './pages/Reservations';
-import Gallery from './pages/Gallery/Gallery';
 import Reviews from './pages/Reviews/Reviews';
 import Feedback from './pages/Feedback/Feedback';
 import Contact from './pages/Contact/Contact';
 import Cart from './pages/Cart/Cart';
 import Checkout from './pages/Checkout/Checkout';
-import OrderSuccess from './pages/OrderSuccess/OrderSuccess';
+import OrderTracking from './pages/OrderTracking/OrderTracking';
 import NotFound from './pages/NotFound';
 import ReviewsAdmin from './pages/Admin/ReviewsAdmin';
 import FeedbackAdmin from './pages/Admin/FeedbackAdmin';
@@ -30,14 +29,13 @@ function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
           <Route path="menu" element={<Menu />} />
-          <Route path="gallery" element={<Gallery />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="feedback" element={<Feedback />} />
           <Route path="contact" element={<Contact />} />
           <Route path="reservations" element={<Reservations />} />
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
-          <Route path="order-success" element={<OrderSuccess />} />
+          <Route path="track/:orderId" element={<OrderTracking />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

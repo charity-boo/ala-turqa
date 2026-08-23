@@ -52,7 +52,6 @@ const Navbar = () => {
           <div className="d-none d-lg-flex align-items-center justify-content-end flex-grow-1 pe-4">
             <NavLink to="/" className="luxury-nav-link">Home</NavLink>
             <NavLink to="/menu" className="luxury-nav-link">Menu</NavLink>
-            <NavLink to="/gallery" className="luxury-nav-link">Gallery</NavLink>
             <NavLink to="/reservations" className="luxury-nav-link">Reservations</NavLink>
             <NavLink to="/contact" className="luxury-nav-link">Contact</NavLink>
 
