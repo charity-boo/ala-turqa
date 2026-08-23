@@ -33,9 +33,8 @@ const ContactInfo = () => {
         <div className="text-gold fs-4 me-3 mt-1"><FaClock /></div>
         <div>
           <h6 className="text-white mb-1">Opening Hours</h6>
-          <p className="text-muted mb-1"><strong>Mon - Thu:</strong> 11:00 AM - 10:00 PM</p>
-          <p className="text-muted mb-1"><strong>Fri - Sat:</strong> 11:00 AM - 11:30 PM</p>
-          <p className="text-muted mb-0"><strong>Sunday:</strong> 12:00 PM - 10:00 PM</p>
+          <p className="text-muted mb-1"><strong>Mon - Sat:</strong> 9:00 AM - 10:30 PM</p>
+          <p className="text-muted mb-0"><strong>Sunday:</strong> Closed</p>
         </div>
       </div>
     </div>

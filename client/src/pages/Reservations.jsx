@@ -5,13 +5,34 @@ const Reservations = () => {
     name: '', email: '', phone: '', date: '', time: '', guests: '2', specialRequest: ''
   });
 
+  const [error, setError] = useState('');
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (formData.date) {
+      const selectedDate = new Date(formData.date);
+      // getDay(): 0 is Sunday
+      if (selectedDate.getUTCDay() === 0) {
+        setError('We are closed on Sundays. Please select another day.');
+        return;
+      }
+    }
+
+    if (formData.time) {
+      if (formData.time < '09:00' || formData.time > '22:30') {
+        setError('Reservation time must be between 9:00 AM and 10:30 PM.');
+        return;
+      }
+    }
+
+    setError('');
     alert('Reservation requested! (Mock)');
   };
 
   const handleChange = (e) => {
     setFormData({...formData, [e.target.name]: e.target.value});
+    if (error) setError('');
   };
 
   return (
@@ -26,16 +47,12 @@ const Reservations = () => {
             <div className="bg-dark-secondary p-4 rounded border border-secondary">
               <h5 className="text-white mb-3">Opening Hours</h5>
               <div className="d-flex justify-content-between text-muted mb-2">
-                <span>Monday - Thursday</span>
-                <span>11:00 AM - 10:00 PM</span>
-              </div>
-              <div className="d-flex justify-content-between text-muted mb-2">
-                <span>Friday - Saturday</span>
-                <span>11:00 AM - 11:30 PM</span>
+                <span>Monday - Saturday</span>
+                <span>9:00 AM - 10:30 PM</span>
               </div>
               <div className="d-flex justify-content-between text-muted">
                 <span>Sunday</span>
-                <span>10:00 AM - 10:00 PM</span>
+                <span className="text-danger fw-bold">Closed</span>
               </div>
             </div>
           </div>
@@ -43,6 +60,11 @@ const Reservations = () => {
           <div className="col-lg-7 px-lg-5 slide-up">
             <div className="card card-luxury border-0 bg-dark-secondary p-4 p-md-5">
               <h3 className="text-white mb-4 text-center" style={{ fontFamily: 'Playfair Display, serif' }}>Book A Table</h3>
+              {error && (
+                <div className="alert alert-danger mb-4" role="alert">
+                  {error}
+                </div>
+              )}
               <form onSubmit={handleSubmit}>
                 <div className="row g-3">
                   <div className="col-md-6">
@@ -67,7 +89,8 @@ const Reservations = () => {
                     <input type="date" className="form-control bg-dark text-white border-secondary" name="date" onChange={handleChange} required />
                   </div>
                   <div className="col-md-6">
-                    <input type="time" className="form-control bg-dark text-white border-secondary" name="time" onChange={handleChange} required />
+                    <input type="time" className="form-control bg-dark text-white border-secondary" name="time" min="09:00" max="22:30" onChange={handleChange} required />
+                    <small className="text-muted">Hours: 9:00 AM - 10:30 PM</small>
                   </div>
                   <div className="col-12">
                     <textarea className="form-control bg-dark text-white border-secondary" rows="3" placeholder="Special Requests" name="specialRequest" onChange={handleChange}></textarea>
