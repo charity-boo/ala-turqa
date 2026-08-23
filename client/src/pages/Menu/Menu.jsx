@@ -4,11 +4,13 @@ import CategoryTabs from '../../components/Menu/CategoryTabs';
 import MenuFilters from '../../components/Menu/MenuFilters';
 import MenuCard from '../../components/Menu/MenuCard';
 import { getAllMenuItems } from '../../services/menuService';
+import { getCategories } from '../../services/categoryService';
 import { FaDatabase } from 'react-icons/fa';
 
 
 const Menu = () => {
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -27,8 +29,12 @@ const Menu = () => {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const data = await getAllMenuItems();
+      const [data, catData] = await Promise.all([
+        getAllMenuItems(),
+        getCategories()
+      ]);
       setItems(data);
+      setCategories(catData.filter(c => c.isActive).map(c => c.name));
     } catch (error) {
       console.error("Failed to fetch menu items", error);
     } finally {
@@ -69,7 +75,7 @@ const Menu = () => {
         
         <MenuSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
-        <CategoryTabs activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+        <CategoryTabs activeCategory={activeCategory} setActiveCategory={setActiveCategory} categories={categories} />
         <MenuFilters filters={filters} setFilters={setFilters} />
 
         {loading ? (

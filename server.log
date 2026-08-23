@@ -1,0 +1,32 @@
+
+> ala-turqa-root@1.0.0 dev
+> npm run dev --prefix server & npm run dev --prefix client
+
+
+> server@1.0.0 dev
+> nodemon index.js
+
+
+> client@0.0.0 dev
+> vite --host
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node index.js`[39m
+
+  VITE v8.0.16  ready in 503 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.26:5173/
+Server running on port 5000
+2:53:09 PM [vite] (client) [console.warn] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+2:53:09 PM [vite] (client) [console.warn] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+2:55:44 PM [vite] (client) [console.warn] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+2:55:44 PM [vite] (client) [console.warn] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+3:05:08 PM [vite] (client) hmr update /src/layouts/AdminLayout.jsx
+3:09:31 PM [vite] (client) hmr update /src/pages/Checkout/Checkout.jsx, /src/pages/Admin/Orders.jsx, /src/components/Admin/OrderDetailsModal.jsx
+3:09:39 PM [vite] (client) hmr update /src/components/Admin/NotificationBell.jsx, /src/pages/Checkout/Checkout.jsx, /src/pages/Admin/Orders.jsx, /src/components/Admin/OrderDetailsModal.jsx
+3:12:50 PM [vite] (client) hmr update /src/pages/Admin/Orders.jsx
+3:13:04 PM [vite] (client) hmr update /src/pages/Admin/Orders.jsx

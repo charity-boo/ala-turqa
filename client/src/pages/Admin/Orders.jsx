@@ -1,161 +1,205 @@
-import React, { useState, useEffect } from 'react';
-import OrderTable from '../../components/Admin/OrderTable';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import OrderDetailsModal from '../../components/Admin/OrderDetailsModal';
-import { subscribeToOrders } from '../../services/orderService';
-import { FaSearch, FaFilter } from 'react-icons/fa';
+import OrderTable from '../../components/Admin/OrderTable';
+import {
+  ORDER_STATUS_FLOW,
+  formatOrderStatusLabel,
+  normalizeOrderStatus,
+  subscribeToOrders,
+} from '../../services/orderService';
+import { parseBasePrice } from '../../utils/priceFormatter';
+
+const ORDER_FILTERS = ['all', ...ORDER_STATUS_FLOW];
+
+const DATE_FILTERS = [
+  { label: 'All Time', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'Yesterday', value: 'yesterday' },
+  { label: 'Last 7 Days', value: '7days' },
+  { label: 'Last 30 Days', value: '30days' }
+];
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Filtering & Search
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [error, setError] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('all');
+  const [selectedDeliveryProvider, setSelectedDeliveryProvider] = useState('all');
+  const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal State
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
-    // Subscribe to real-time updates from Firestore
-    const unsubscribe = subscribeToOrders((fetchedOrders) => {
-      setOrders(fetchedOrders);
-      setLoading(false);
-    });
+    if (location.state?.orderId && orders.length > 0) {
+      const order = orders.find(o => o.id === location.state.orderId);
+      if (order) {
+        setSelectedOrder(order);
+        // Clear state so it doesn't reopen on refresh
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, orders]);
 
-    // Cleanup subscription on unmount
+  useEffect(() => {
+    const unsubscribe = subscribeToOrders((data) => {
+      setOrders(data);
+      setLoading(false);
+    }, 200); // Increased buffer to allow better client-side date filtering
     return () => unsubscribe();
   }, []);
 
-  // Update selectedOrder gracefully when orders array changes (e.g. status update syncs back)
-  useEffect(() => {
-    if (selectedOrder) {
-      const updated = orders.find(o => o.id === selectedOrder.id);
-      if (updated && updated.status !== selectedOrder.status) {
-        setSelectedOrder(updated);
+  const filteredOrders = useMemo(() => {
+    let startDate = null;
+    let endDate = null;
+    const now = new Date();
+    
+    if (selectedDateRange === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (selectedDateRange === 'yesterday') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (selectedDateRange === '7days') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    } else if (selectedDateRange === '30days') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+    }
+
+    return orders.filter((order) => {
+      // Status filter
+      const normalizedStatus = normalizeOrderStatus(order);
+      if (selectedStatus !== 'all' && normalizedStatus !== selectedStatus) return false;
+
+      // Payment filter
+      if (selectedPaymentStatus !== 'all') {
+         const pStatus = (order.paymentStatus || 'pending').toLowerCase();
+         if (pStatus !== selectedPaymentStatus) return false;
       }
-    }
-  }, [orders, selectedOrder]);
-
-  const filteredOrders = orders.filter(order => {
-    // 1. Status Filter
-    if (filterStatus !== 'all' && (order.status || 'pending').toLowerCase() !== filterStatus.toLowerCase()) {
-      return false;
-    }
-
-    // 2. Search Term Filter (Order Number, Name, Phone)
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const orderNumber = (order.orderNumber || order.id).toLowerCase();
-      const customerName = (order.customerName || `${order.firstName || ''} ${order.lastName || ''}`).toLowerCase();
-      const phoneNumber = (order.phoneNumber || order.phone || '').toLowerCase();
       
-      if (!orderNumber.includes(term) && !customerName.includes(term) && !phoneNumber.includes(term)) {
-        return false;
+      // Delivery filter
+      if (selectedDeliveryProvider !== 'all') {
+         const method = (order.deliveryMethod || order.orderType || '').toLowerCase();
+         const provider = (order.deliveryProvider || '').toLowerCase();
+         if (selectedDeliveryProvider === 'pickup') {
+            if (method !== 'pickup') return false;
+         } else {
+            if (provider !== selectedDeliveryProvider) return false;
+         }
       }
-    }
 
-    return true;
-  });
+      // Date filter
+      if (startDate || endDate) {
+         if (!order.createdAt) return false;
+         const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+         if (startDate && orderDate < startDate) return false;
+         if (endDate && orderDate >= endDate) return false;
+      }
 
-  const statuses = [
-    { label: 'All Orders', value: 'all' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Confirmed', value: 'confirmed' },
-    { label: 'Preparing', value: 'preparing' },
-    { label: 'Ready', value: 'ready' },
-    { label: 'Completed', value: 'completed' },
-    { label: 'Cancelled', value: 'cancelled' },
-  ];
+      // Search filter
+      if (!searchTerm.trim()) return true;
+      const needle = searchTerm.toLowerCase();
+      return [
+        order.orderNumber,
+        order.customerName,
+        order.phone,
+        order.email,
+        order.deliveryProvider,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(needle));
+    });
+  }, [orders, searchTerm, selectedStatus, selectedPaymentStatus, selectedDeliveryProvider, selectedDateRange]);
+
+  if (loading) {
+    return <div className="text-light p-4">Loading orders...</div>;
+  }
+
+  if (error) {
+    return <div className="alert alert-danger m-4">{error}</div>;
+  }
 
   return (
-    <div style={{ backgroundColor: '#111111', minHeight: '100vh', padding: '40px 0', fontFamily: '"Poppins", sans-serif' }}>
-      <div className="container-fluid px-4">
-        
-        {/* Header */}
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
-          <h2 className="mb-0" style={{ fontFamily: '"Playfair Display", serif', color: '#C9A227', fontWeight: 'bold' }}>
-            Order Dashboard
-          </h2>
-          <div className="p-2 px-3 rounded" style={{ backgroundColor: '#1B1B1B', color: '#fff', border: '1px solid #333' }}>
-            Total Orders: <span className="ms-2 fs-5" style={{ color: '#C9A227', fontWeight: 'bold' }}>{filteredOrders.length}</span>
-          </div>
+    <div className="text-light">
+      <div className="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center mb-3">
+        <div className="d-flex gap-2 flex-wrap">
+          {ORDER_FILTERS.map((status) => (
+            <button
+              key={status}
+              onClick={() => setSelectedStatus(status)}
+              className="btn btn-sm"
+              style={{
+                backgroundColor: selectedStatus === status ? '#C9A227' : '#1B1B1B',
+                color: selectedStatus === status ? '#111111' : '#FFFFFF',
+              }}
+            >
+              {status === 'all' ? 'All' : formatOrderStatusLabel(status)}
+            </button>
+          ))}
         </div>
-
-        {/* Filters and Search Area */}
-        <div className="card border-0 mb-4 shadow-sm" style={{ backgroundColor: '#1B1B1B', borderRadius: '15px' }}>
-          <div className="card-body p-4">
-            <div className="row g-4 align-items-center">
-              
-              {/* Search Box */}
-              <div className="col-12 col-xl-4">
-                <div className="input-group">
-                  <span className="input-group-text border-0" style={{ backgroundColor: '#222', color: '#C9A227' }}>
-                    <FaSearch />
-                  </span>
-                  <input 
-                    type="text" 
-                    className="form-control border-0 shadow-none text-light" 
-                    placeholder="Search by Order #, Name, or Phone..."
-                    style={{ backgroundColor: '#222' }}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Status Filters */}
-              <div className="col-12 col-xl-8">
-                <div className="d-flex flex-wrap gap-2 align-items-center">
-                  <span className="text-muted me-2 fw-bold d-flex align-items-center">
-                    <FaFilter className="me-2" /> Filter:
-                  </span>
-                  {statuses.map(status => (
-                    <button
-                      key={status.value}
-                      className="btn btn-sm fw-bold px-3 py-2"
-                      style={{
-                        backgroundColor: filterStatus === status.value ? '#C9A227' : '#222',
-                        color: filterStatus === status.value ? '#111111' : '#aaa',
-                        border: 'none',
-                        borderRadius: '8px',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onClick={() => setFilterStatus(status.value)}
-                    >
-                      {status.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* Table Area */}
-        <div className="card border-0 shadow-sm" style={{ backgroundColor: '#1B1B1B', borderRadius: '15px', overflow: 'hidden' }}>
-          <div className="card-body p-0">
-            {loading ? (
-              <div className="text-center p-5 text-light">
-                <div className="spinner-border" style={{ color: '#C9A227', width: '3rem', height: '3rem' }} role="status"></div>
-                <h5 className="mt-4" style={{ fontFamily: '"Playfair Display", serif', color: '#C9A227' }}>Loading Orders...</h5>
-              </div>
-            ) : (
-              <OrderTable orders={filteredOrders} onViewDetails={setSelectedOrder} />
-            )}
-          </div>
-        </div>
-
+        <input
+          className="form-control bg-dark text-light border-secondary"
+          style={{ maxWidth: 360 }}
+          placeholder="Search order, customer, phone, provider..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
       </div>
 
-      {/* Details Modal */}
-      {selectedOrder && (
-        <OrderDetailsModal 
-          order={selectedOrder} 
-          onClose={() => setSelectedOrder(null)} 
-        />
-      )}
-      
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <select 
+          className="form-select form-select-sm bg-dark text-light border-secondary" 
+          style={{ width: 'auto' }}
+          value={selectedPaymentStatus}
+          onChange={e => setSelectedPaymentStatus(e.target.value)}
+        >
+          <option value="all">Payment: All</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="failed">Failed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
+        </select>
+
+        <select 
+          className="form-select form-select-sm bg-dark text-light border-secondary" 
+          style={{ width: 'auto' }}
+          value={selectedDeliveryProvider}
+          onChange={e => setSelectedDeliveryProvider(e.target.value)}
+        >
+          <option value="all">Delivery: All</option>
+          <option value="vipi">Vipi</option>
+          <option value="glovo">Glovo</option>
+          <option value="pickup">Pickup</option>
+        </select>
+
+        <select 
+          className="form-select form-select-sm bg-dark text-light border-secondary" 
+          style={{ width: 'auto' }}
+          value={selectedDateRange}
+          onChange={e => setSelectedDateRange(e.target.value)}
+        >
+          {DATE_FILTERS.map(f => <option key={f.value} value={f.value}>Date: {f.label}</option>)}
+        </select>
+        
+        <div className="text-muted d-flex align-items-center small ms-auto">
+          Showing {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} (from recent buffer)
+        </div>
+      </div>
+
+      <div className="card border-0" style={{ backgroundColor: '#1B1B1B' }}>
+        <div className="card-body p-0">
+          <OrderTable 
+            orders={filteredOrders} 
+            onViewDetails={(order) => setSelectedOrder(order)} 
+          />
+        </div>
+      </div>
+
+      {selectedOrder ? (
+        <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      ) : null}
     </div>
   );
 };

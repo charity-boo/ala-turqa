@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { GoogleMap, useJsApiLoader, Marker, Autocomplete } from '@react-google-maps/api';
+import React, { useState, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { FaMapMarkerAlt, FaSearch } from 'react-icons/fa';
 
 const containerStyle = {
@@ -33,8 +33,6 @@ const GoogleMapPicker = ({ onLocationSelect, initialLocation }) => {
   const [map, setMap] = useState(null);
   const [markerPos, setMarkerPos] = useState(initialLocation || defaultCenter);
   const [address, setAddress] = useState('');
-  
-  const autocompleteRef = useRef(null);
 
   const onLoad = useCallback(function callback(mapInstance) {
     setMap(mapInstance);
@@ -75,26 +73,33 @@ const GoogleMapPicker = ({ onLocationSelect, initialLocation }) => {
     }
   };
 
-  const onPlaceChanged = () => {
-    if (autocompleteRef.current !== null) {
-      const place = autocompleteRef.current.getPlace();
-      if (place.geometry && place.geometry.location) {
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
+  const searchAddress = async () => {
+    if (!window.google || !address.trim()) return;
+
+    const geocoder = new window.google.maps.Geocoder();
+    try {
+      const response = await geocoder.geocode({ address: address.trim() });
+      if (response.results && response.results[0]) {
+        const result = response.results[0];
+        const lat = result.geometry.location.lat();
+        const lng = result.geometry.location.lng();
+        const formattedAddress = result.formatted_address || address.trim();
+
         setMarkerPos({ lat, lng });
+        setAddress(formattedAddress);
         if (map) {
           map.panTo({ lat, lng });
           map.setZoom(15);
         }
-        
-        const formattedAddress = place.formatted_address || place.name;
-        setAddress(formattedAddress);
+
         onLocationSelect({
           latitude: lat,
           longitude: lng,
-          formattedAddress: formattedAddress
+          formattedAddress
         });
       }
+    } catch (error) {
+      console.error("Address search error:", error);
     }
   };
 
@@ -145,25 +150,29 @@ const GoogleMapPicker = ({ onLocationSelect, initialLocation }) => {
     <div className="google-map-picker mb-3">
       <div className="d-flex flex-column gap-2 mb-3">
         <div className="position-relative">
-          <Autocomplete
-            onLoad={(autocomplete) => {
-              autocompleteRef.current = autocomplete;
-            }}
-            onPlaceChanged={onPlaceChanged}
-          >
-            <div className="input-group">
-              <span className="input-group-text bg-dark text-white border-secondary">
-                <FaSearch />
-              </span>
-              <input
-                type="text"
-                placeholder="Search for a location..."
-                className="form-control bg-dark text-white border-secondary"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </div>
-          </Autocomplete>
+          <div className="input-group">
+            <input
+              type="text"
+              placeholder="Search for a location..."
+              className="form-control bg-dark text-white border-secondary"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchAddress();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-outline-secondary border-secondary"
+              onClick={searchAddress}
+              aria-label="Search location"
+            >
+              <FaSearch />
+            </button>
+          </div>
         </div>
         <button 
           type="button" 

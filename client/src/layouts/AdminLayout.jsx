@@ -1,22 +1,34 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import AdminSidebar from '../components/Admin/AdminSidebar';
+import AdminHeader from '../components/Admin/AdminHeader';
+import useAuth from '../hooks/useAuth';
 
 const AdminLayout = () => {
+  const { role } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <div className="d-flex" style={{ minHeight: '100vh', backgroundColor: '#111' }}>
-      {/* Sidebar Placeholder */}
-      <aside className="bg-dark-secondary text-white p-3" style={{ width: '250px', borderRight: '1px solid rgba(201, 162, 39, 0.2)' }}>
-        <h4 className="text-gold mb-4">Admin Panel</h4>
-        <nav className="nav flex-column">
-          <a className="nav-link text-white" href="/admin">Dashboard</a>
-          <a className="nav-link text-white" href="/admin/menu">Menu</a>
-          <a className="nav-link text-white" href="/admin/orders">Orders</a>
-          <a className="nav-link text-white" href="/admin/reviews">Reviews</a>
-          <a className="nav-link text-white" href="/admin/feedback">Feedback</a>
-          <a className="nav-link text-white mt-4 pt-4 border-top border-secondary" href="/">Back to Site</a>
-        </nav>
-      </aside>
-      
-      <main className="flex-grow-1 p-4">
+    <div className="d-flex" style={{ minHeight: '100vh', backgroundColor: '#111111' }}>
+      <div className="d-none d-md-block">
+        <AdminSidebar role={role} />
+      </div>
+
+      {mobileOpen && (
+        <>
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1040 }}
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="position-fixed top-0 start-0 h-100" style={{ zIndex: 1041 }}>
+            <AdminSidebar role={role} onNavigate={() => setMobileOpen(false)} />
+          </div>
+        </>
+      )}
+
+      <main className="flex-grow-1 p-3 p-md-4">
+        <AdminHeader onToggleSidebar={() => setMobileOpen((prev) => !prev)} />
         <Outlet />
       </main>
     </div>

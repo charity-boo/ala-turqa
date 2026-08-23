@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllMenuItems, deleteMenuItem, updateMenuItem } from '../../services/menuService';
+import { getCategories } from '../../services/categoryService';
 import AddMenuItemModal from './AddMenuItemModal';
 import EditMenuItemModal from './EditMenuItemModal';
 import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaDatabase } from 'react-icons/fa';
@@ -13,6 +14,9 @@ const MenuManagement = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     fetchItems();
@@ -21,8 +25,13 @@ const MenuManagement = () => {
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const data = await getAllMenuItems();
+      const [data, catData] = await Promise.all([
+        getAllMenuItems(),
+        getCategories()
+      ]);
       setItems(data);
+      // Filter out derived/inactive categories if we only want active ones, or just show all
+      setCategories(catData.filter(c => c.isActive).map(c => c.name));
     } catch (error) {
       console.error("Error fetching menu items:", error);
     } finally {
@@ -31,7 +40,7 @@ const MenuManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this item?")) {
+    if (window.confirm("Are you sure you want to permanently delete this item? Consider toggling Availability instead to retain it for records.")) {
       try {
         await deleteMenuItem(id);
         setItems(items.filter(item => item.id !== id));
@@ -69,6 +78,19 @@ const MenuManagement = () => {
     }
   };
 
+  const filteredItems = items.filter(item => {
+    if (selectedCategory !== 'All' && item.category !== selectedCategory) return false;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      return (
+        item.name?.toLowerCase().includes(term) ||
+        item.description?.toLowerCase().includes(term) ||
+        item.category?.toLowerCase().includes(term)
+      );
+    }
+    return true;
+  });
+
   return (
     <div style={{ backgroundColor: '#111111', minHeight: '100vh', padding: '40px 20px', color: '#FFFFFF' }}>
       <div className="container" style={{ backgroundColor: '#1B1B1B', borderRadius: '15px', padding: '30px' }}>
@@ -93,6 +115,27 @@ const MenuManagement = () => {
           </div>
         </div>
 
+        <div className="d-flex flex-column flex-md-row gap-3 mb-4">
+          <input
+            type="text"
+            className="form-control bg-dark text-light border-secondary"
+            placeholder="Search items by name, description, or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select
+            className="form-select bg-dark text-light border-secondary"
+            style={{ minWidth: '200px' }}
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="All">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
         {loading ? (
           <div className="text-center my-5">
             <div className="spinner-border" style={{ color: '#C9A227' }} role="status">
@@ -115,11 +158,11 @@ const MenuManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {filteredItems.map(item => (
                   <tr key={item.id}>
                     <td>
                       <img
-                        src={item.image || 'https://via.placeholder.com/50'}
+                        src={item.image || 'https://placehold.co/50/1B1B1B/FFFFFF?text=Ala+Turqa'}
                         alt={item.name}
                         style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '5px' }}
                       />
@@ -147,9 +190,9 @@ const MenuManagement = () => {
                     </td>
                   </tr>
                 ))}
-                {items.length === 0 && (
+                {filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center py-4 text-muted">No menu items found.</td>
+                    <td colSpan="8" className="text-center py-4 text-muted">No menu items found matching filters.</td>
                   </tr>
                 )}
               </tbody>
@@ -160,6 +203,7 @@ const MenuManagement = () => {
 
       {showAddModal && (
         <AddMenuItemModal
+          categories={categories}
           onClose={() => setShowAddModal(false)}
           onAdd={(newItem) => {
             setItems([newItem, ...items]);
@@ -170,6 +214,7 @@ const MenuManagement = () => {
 
       {showEditModal && selectedItem && (
         <EditMenuItemModal
+          categories={categories}
           item={selectedItem}
           onClose={() => setShowEditModal(false)}
           onUpdate={(updatedItem) => {

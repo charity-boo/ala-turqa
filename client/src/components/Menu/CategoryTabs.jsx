@@ -1,7 +1,9 @@
 import React from 'react';
 import { MENU_CATEGORIES } from '../../utils/constants';
 
-const CategoryTabs = ({ activeCategory, setActiveCategory }) => {
+const CategoryTabs = ({ activeCategory, setActiveCategory, categories = [] }) => {
+  const displayCategories = categories.length > 0 ? categories : MENU_CATEGORIES;
+
   return (
     <div className="category-tabs-container mb-4" style={{ overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: '10px' }}>
       <div className="d-flex gap-2">
@@ -20,7 +22,7 @@ const CategoryTabs = ({ activeCategory, setActiveCategory }) => {
         >
           All
         </button>
-        {MENU_CATEGORIES.map((category) => (
+        {displayCategories.map((category) => (
           <button
             key={category}
             className={`btn ${activeCategory === category ? 'active' : ''}`}

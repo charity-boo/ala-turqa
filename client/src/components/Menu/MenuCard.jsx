@@ -33,7 +33,7 @@ const MenuCard = ({ item }) => {
       <div className="card h-100 border-0 menu-card" style={{ backgroundColor: '#1B1B1B', color: '#FFFFFF', borderRadius: '15px', overflow: 'hidden', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
         <div style={{ position: 'relative', overflow: 'hidden', height: '200px' }}>
           <img
-            src={item.image || 'https://via.placeholder.com/300x200?text=Ala+Turqa'}
+            src={item.image || 'https://placehold.co/300x200/1B1B1B/FFFFFF?text=Ala+Turqa'}
             className="card-img-top"
             alt={item.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}

@@ -83,6 +83,16 @@ const OrderDetailsModal = ({ order, onClose }) => {
                   </div>
                   <p className="mb-2"><strong>Type:</strong> <span style={{ textTransform: 'capitalize' }}>{order.orderType || 'N/A'}</span></p>
                   <p className="mb-2"><strong>Payment:</strong> <span style={{ textTransform: 'capitalize' }}>{order.paymentMethod || 'N/A'}</span></p>
+                  
+                  {order.paymentMethod === 'mpesa' && (
+                    <div className="mt-2 p-2 rounded" style={{ backgroundColor: '#2a2a2a', borderLeft: '3px solid #C9A227' }}>
+                      <p className="mb-1"><strong>Payment Status:</strong> {order.paymentStatus || 'pending'}</p>
+                      {order.mpesaReceiptNumber && <p className="mb-1"><strong>M-Pesa Receipt:</strong> {order.mpesaReceiptNumber}</p>}
+                      {order.checkoutRequestId && <p className="mb-1" style={{ fontSize: '0.8rem', color: '#aaa' }}><strong>Checkout ID:</strong> {order.checkoutRequestId}</p>}
+                      {order.merchantRequestId && <p className="mb-1" style={{ fontSize: '0.8rem', color: '#aaa' }}><strong>Merchant ID:</strong> {order.merchantRequestId}</p>}
+                      {order.paymentTimestamp && <p className="mb-0" style={{ fontSize: '0.8rem', color: '#aaa' }}><strong>Paid At:</strong> {new Date(order.paymentTimestamp.seconds ? order.paymentTimestamp.seconds * 1000 : order.paymentTimestamp).toLocaleString()}</p>}
+                    </div>
+                  )}
                   {order.specialInstructions && (
                     <div className="mt-3 p-2 rounded" style={{ backgroundColor: '#332a00', border: '1px solid #C9A227' }}>
                       <strong style={{ color: '#C9A227' }}>Special Instructions:</strong>

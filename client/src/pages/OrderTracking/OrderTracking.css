@@ -1,0 +1,24 @@
+.pulse-animation {
+  box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.7);
+  animation: pulse-gold 2s infinite;
+}
+
+@keyframes pulse-gold {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(201, 162, 39, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0);
+  }
+}
+
+.tracking-timeline {
+  overflow: hidden;
+  padding-bottom: 10px;
+}

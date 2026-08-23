@@ -22,10 +22,10 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (item) => {
     setCart(prevCart => {
-      const existingItem = prevCart.find(i => i.id === item.id && i.specialInstructions === item.specialInstructions);
+      const existingItem = prevCart.find(i => i.id === item.id && (i.specialInstructions || '') === (item.specialInstructions || ''));
       if (existingItem) {
         return prevCart.map(i => 
-          (i.id === item.id && i.specialInstructions === item.specialInstructions)
+          (i.id === item.id && (i.specialInstructions || '') === (item.specialInstructions || ''))
             ? { ...i, quantity: i.quantity + (item.quantity || 1) }
             : i
         );
@@ -35,12 +35,12 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (id, specialInstructions = '') => {
-    setCart(prevCart => prevCart.filter(i => !(i.id === id && i.specialInstructions === specialInstructions)));
+    setCart(prevCart => prevCart.filter(i => !(i.id === id && (i.specialInstructions || '') === (specialInstructions || ''))));
   };
 
   const increaseQuantity = (id, specialInstructions = '') => {
     setCart(prevCart => prevCart.map(i => 
-      (i.id === id && i.specialInstructions === specialInstructions) 
+      (i.id === id && (i.specialInstructions || '') === (specialInstructions || '')) 
         ? { ...i, quantity: i.quantity + 1 } 
         : i
     ));
@@ -48,7 +48,7 @@ export const CartProvider = ({ children }) => {
 
   const decreaseQuantity = (id, specialInstructions = '') => {
     setCart(prevCart => prevCart.map(i => 
-      (i.id === id && i.specialInstructions === specialInstructions && i.quantity > 1) 
+      (i.id === id && (i.specialInstructions || '') === (specialInstructions || '') && i.quantity > 1) 
         ? { ...i, quantity: i.quantity - 1 } 
         : i
     ));

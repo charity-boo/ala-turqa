@@ -3,10 +3,12 @@ import { updateMenuItem } from '../../services/menuService';
 import { uploadImage } from '../../services/storageService';
 import { MENU_CATEGORIES } from '../../utils/constants';
 
-const EditMenuItemModal = ({ item, onClose, onUpdate }) => {
+const EditMenuItemModal = ({ item, onClose, onUpdate, categories = [] }) => {
+  const dynamicCategories = categories.length > 0 ? categories : MENU_CATEGORIES;
+  
   const [formData, setFormData] = useState({
     name: item.name || '',
-    category: item.category || MENU_CATEGORIES[0],
+    category: item.category || dynamicCategories[0],
     price: item.price || '',
     description: item.description || '',
     preparationTime: item.preparationTime || '',
@@ -43,8 +45,8 @@ const EditMenuItemModal = ({ item, onClose, onUpdate }) => {
       if (!formData.name || !formData.price) {
         throw new Error("Name and Price are required.");
       }
-      if (isNaN(Number(formData.price))) {
-        throw new Error("Price must be a number.");
+      if (isNaN(Number(formData.price)) || Number(formData.price) < 0) {
+        throw new Error("Price must be a valid positive number.");
       }
 
       let imageUrl = item.image || '';
@@ -82,17 +84,17 @@ const EditMenuItemModal = ({ item, onClose, onUpdate }) => {
               <div className="row g-3">
                 <div className="col-md-6">
                   <label className="form-label">Food Name *</label>
-                  <input type="text" className="form-control bg-dark text-light border-secondary" name="name" value={formData.name} onChange={handleChange} required />
+                  <input type="text" className="form-control bg-dark text-light border-secondary" name="name" value={formData.name} onChange={handleChange} required maxLength="100" />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Category *</label>
                   <select className="form-select bg-dark text-light border-secondary" name="category" value={formData.category} onChange={handleChange}>
-                    {MENU_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {dynamicCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Price *</label>
-                  <input type="number" step="0.01" className="form-control bg-dark text-light border-secondary" name="price" value={formData.price} onChange={handleChange} required />
+                  <input type="number" step="0.01" min="0" className="form-control bg-dark text-light border-secondary" name="price" value={formData.price} onChange={handleChange} required />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Preparation Time (mins)</label>
@@ -100,7 +102,7 @@ const EditMenuItemModal = ({ item, onClose, onUpdate }) => {
                 </div>
                 <div className="col-12">
                   <label className="form-label">Description</label>
-                  <textarea className="form-control bg-dark text-light border-secondary" rows="3" name="description" value={formData.description} onChange={handleChange}></textarea>
+                  <textarea className="form-control bg-dark text-light border-secondary" rows="3" name="description" value={formData.description} onChange={handleChange} maxLength="500"></textarea>
                 </div>
                 <div className="col-12">
                   <label className="form-label">Food Image</label>
@@ -134,7 +136,7 @@ const EditMenuItemModal = ({ item, onClose, onUpdate }) => {
               </div>
 
               <div className="modal-footer border-top-0 mt-4">
-                <button type="button" className="btn btn-secondary rounded-pill px-4" onClick={onClose}>Cancel</button>
+                <button type="button" className="btn btn-secondary rounded-pill px-4" onClick={onClose} disabled={loading}>Cancel</button>
                 <button type="submit" className="btn text-dark fw-bold rounded-pill px-4" style={{ backgroundColor: '#C9A227' }} disabled={loading}>
                   {loading ? 'Updating...' : 'Save Changes'}
                 </button>

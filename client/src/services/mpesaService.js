@@ -1,5 +1,5 @@
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -8,11 +8,18 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
  */
 export const initiateStkPush = async (orderId, phone, amount) => {
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}/payment/mpesa`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ orderId, phone, amount }),
     });
 
@@ -32,8 +39,9 @@ export const initiateStkPush = async (orderId, phone, amount) => {
  * Polls the payment status from Firestore
  * Resolves when payment is successful, rejects if failed or cancelled.
  */
-export const pollPaymentStatus = (checkoutRequestId, onStatusChange) => {
+export const pollPaymentStatus = (checkoutRequestId, onStatusChange, timeoutMs = 180000, signal = null) => {
   return new Promise((resolve, reject) => {
+    let timeoutId;
     const paymentsRef = collection(db, 'payments');
     const q = query(paymentsRef, where('checkoutRequestId', '==', checkoutRequestId));
 
@@ -42,21 +50,39 @@ export const pollPaymentStatus = (checkoutRequestId, onStatusChange) => {
         const paymentDoc = snapshot.docs[0].data();
         
         if (onStatusChange) {
-          onStatusChange(paymentDoc.paymentStatus);
+          onStatusChange(paymentDoc.status);
         }
 
-        if (paymentDoc.paymentStatus === 'completed') {
+        if (['completed', 'failed', 'cancelled'].includes(paymentDoc.status)) {
+          clearTimeout(timeoutId);
           unsubscribe();
           resolve(paymentDoc);
-        } else if (paymentDoc.paymentStatus === 'failed' || paymentDoc.paymentStatus === 'cancelled') {
-          unsubscribe();
-          reject(new Error(paymentDoc.resultDescription || 'Payment failed or was cancelled.'));
         }
         // If pending, keep waiting...
       }
     }, (error) => {
+      clearTimeout(timeoutId);
       unsubscribe();
+      if (signal?.aborted) return;
       reject(error);
     });
+
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        clearTimeout(timeoutId);
+        unsubscribe();
+        const abortError = new Error('ABORTED');
+        abortError.code = 'ABORTED';
+        reject(abortError);
+      });
+    }
+
+    // Timeout mechanism - 3 minute timeout
+    timeoutId = setTimeout(() => {
+      unsubscribe();
+      const timeoutError = new Error('TIMEOUT');
+      timeoutError.code = 'TIMEOUT';
+      reject(timeoutError);
+    }, timeoutMs);
   });
 };

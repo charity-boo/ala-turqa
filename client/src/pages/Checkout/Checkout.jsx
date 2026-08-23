@@ -1,19 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { AuthContext } from '../../context/authContext';
 import { createOrder } from '../../services/orderService';
 import { FaMoneyBillWave, FaMobileAlt, FaMotorcycle, FaStore, FaSpinner, FaCreditCard } from 'react-icons/fa';
 import { initiateStkPush, pollPaymentStatus } from '../../services/mpesaService';
 import GoogleMapPicker from '../../components/GoogleMapPicker';
 import { generateOrderNumber } from '../../utils/idGenerator';
 import { parseBasePrice } from '../../utils/priceFormatter';
+import { useContext, useEffect, useRef } from 'react';
 
 const Checkout = () => {
   const { cart, calculateSubtotal, calculateTotal, clearCart } = useCart();
+  const { currentUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // 'prompting', 'polling'
   const [error, setError] = useState(null);
+  const [existingOrder, setExistingOrder] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -34,6 +47,7 @@ const Checkout = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setExistingOrder(null);
   };
 
   const validateForm = () => {
@@ -77,6 +91,7 @@ const Checkout = () => {
 
     const orderData = {
       orderNumber: generateOrderNumber(),
+      userId: currentUser?.uid || null,
       customerName: formData.customerName,
       phone: formData.phone,
       email: formData.email,
@@ -106,29 +121,54 @@ const Checkout = () => {
 
     try {
       // 1. Save the order to Firestore first
-      const savedOrder = await createOrder({
-        ...orderData,
-        paymentStatus: 'pending'
-      });
+      let savedOrder = existingOrder;
+      if (!savedOrder) {
+        savedOrder = await createOrder({
+          ...orderData,
+          paymentStatus: 'pending'
+        });
+        setExistingOrder(savedOrder);
+      }
 
       if (formData.paymentMethod === 'M-Pesa') {
         // 2. Trigger M-Pesa STK Push
         setPaymentStatus('prompting');
         const stkResponse = await initiateStkPush(savedOrder.id, formData.phone, total);
         
-        // 3. Display prompt and poll status
+        // 3. Display prompt and poll status (180 second timeout = 3 minutes)
         setPaymentStatus('polling');
-        await pollPaymentStatus(stkResponse.checkoutRequestId, () => {});
+        
+        abortControllerRef.current = new AbortController();
+        const finalDoc = await pollPaymentStatus(stkResponse.checkoutRequestId, () => {}, 180000, abortControllerRef.current.signal);
 
-        // 4. Payment successful, clear cart and redirect
-        clearCart();
-        navigate('/order-success', { state: { order: { ...savedOrder, paymentStatus: 'paid' } } });
+        // 4. Handle terminal payment statuses
+        if (finalDoc.status === 'completed') {
+          clearCart();
+          setPaymentStatus(null);
+          navigate('/track/' + savedOrder.id, { state: { order: { ...savedOrder, paymentStatus: 'paid', mpesaReceiptNumber: finalDoc.mpesaReceiptNumber, paymentMethod: 'M-Pesa' } } });
+        } else if (finalDoc.status === 'cancelled') {
+          setError("Payment cancelled. No payment was made.");
+          setPaymentStatus(null);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (finalDoc.status === 'failed') {
+          setError("Payment failed. Please try again.");
+          setPaymentStatus(null);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       } else if (formData.paymentMethod === 'Card') {
         throw new Error("Card payment is not yet implemented.");
       }
     } catch (err) {
       console.error("Checkout Error:", err);
-      setError(err.message || "Failed to process order. Please try again.");
+      if (err.code === 'ABORTED') {
+        // Component unmounted, ignore
+        return;
+      }
+      if (err.message === 'TIMEOUT' || err.code === 'TIMEOUT') {
+        setError("Payment confirmation timed out. Please check your M-Pesa messages to confirm if payment was made. You can retry the checkout or contact support if you were charged.");
+      } else {
+        setError(err.message || "Failed to process order. Please try again.");
+      }
       setPaymentStatus(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
@@ -277,7 +317,8 @@ const Checkout = () => {
               <div className="alert alert-warning mt-3 mb-0 text-center border-warning">
                 <div className="spinner-grow spinner-grow-sm text-warning me-2" role="status"></div>
                 <strong>Check your phone!</strong>
-                <p className="mb-0 mt-1 small">Please enter your M-Pesa PIN to complete the payment. Waiting for confirmation...</p>
+                <p className="mb-0 mt-1 small">Please enter your M-Pesa PIN to complete the payment.</p>
+                <p className="mb-0 mt-1 small text-muted">Waiting for confirmation... (up to 3 minutes)</p>
               </div>
             )}
 

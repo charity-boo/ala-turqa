@@ -16,21 +16,38 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /orders/{orderId} {
-      // Anyone can create an order (guest checkout)
-      allow create: if true;
-      // Users can read if they own it or if admin
-      allow read: if (isAuthenticated() && request.auth.uid == resource.data.userId) || isAdmin();
+      // Anyone can create an order but cannot force paid status
+      allow create: if request.resource.data.paymentStatus != 'paid' && request.resource.data.paymentStatus != 'completed';
+      // Anyone with the unguessable 20-char order ID can read it for live tracking
+      allow get: if true;
+      allow list: if (isAuthenticated() && request.auth.uid == resource.data.userId) || isAdmin();
       allow update, delete: if isAdmin();
     }
 
     match /payments/{paymentId} {
-      // Anyone can create a payment intent
-      allow create: if true;
+      // Backend creates payments via Admin SDK. Clients should not create them.
+      allow create: if isAdmin();
       // Anyone can read a payment (needed for polling by checkoutRequestId)
+      // Ideally restrict to order owner if userId is present, but true allows guest polling.
       allow read: if true;
-      // Only backend updates payments via Admin SDK (bypasses rules)
       allow update, delete: if isAdmin();
+    }
+
+    match /payment_events/{eventId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+      allow create, delete: if false;
     }
 
     match /users/{userId} {
