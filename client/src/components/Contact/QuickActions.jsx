@@ -1,7 +1,8 @@
 import { FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt } from 'react-icons/fa';
 
 const QuickActions = () => {
-  const phoneNumber = '+254700000000';
+  const phoneNumber = '0140628102';
+  const whatsappNumber = '254140628102';
   const whatsappMsg = encodeURIComponent("Hello Ala Turqa! I'd like to make an inquiry.");
   
   return (
@@ -22,7 +23,7 @@ const QuickActions = () => {
           </div>
 
           <div className="col-12 col-md-4 slide-up" style={{ animationDelay: '0.2s' }}>
-            <a href={`https://wa.me/${phoneNumber.replace('+', '')}?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none w-100">
+            <a href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none w-100">
               <div className="card card-luxury h-100 text-center p-4 border-0 d-flex flex-column justify-content-center align-items-center transition-hover" style={{ border: '1px solid rgba(37, 211, 102, 0.3) !important' }}>
                 <div className="bg-dark rounded-circle d-flex align-items-center justify-content-center mb-3 border border-secondary" style={{ width: '70px', height: '70px' }}>
                   <FaWhatsapp style={{ color: '#25D366' }} className="fs-3" />

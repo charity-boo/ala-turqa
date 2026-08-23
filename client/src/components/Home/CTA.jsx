@@ -31,7 +31,7 @@ const CTA = () => {
           <Link to="/reservations" className="btn btn-outline-light btn-lg px-5 py-3 fw-bold shadow-lg">
             Reserve Table
           </Link>
-          <a href={`https://wa.me/254700000000?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer" className="btn btn-success btn-lg px-5 py-3 fw-bold d-flex align-items-center justify-content-center shadow-lg border-0" style={{ backgroundColor: '#25D366' }}>
+          <a href={`https://wa.me/254140628102?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer" className="btn btn-success btn-lg px-5 py-3 fw-bold d-flex align-items-center justify-content-center shadow-lg border-0" style={{ backgroundColor: '#25D366' }}>
             <FaWhatsapp className="me-2 fs-4" /> Order Now
           </a>
         </div>
