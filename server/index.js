@@ -11,7 +11,8 @@ app.use(express.json());
 // Routes
 // app.use('/api/menu', require('./routes/menuRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
-// M-Pesa payment routes are handled by Cloud Functions (functions/routes/mpesaRoutes.js)
+// M-Pesa payment routes handled via proxy or direct Cloud Function forwarding
+app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/tracking', require('./routes/trackingRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 

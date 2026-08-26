@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
-import { FaBell, FaCircle, FaCheckDouble } from 'react-icons/fa';
+import { Bell, CheckCheck, Clock, CircleAlert } from 'lucide-react';
 
-// Simple timeAgo formatter since we don't have date-fns
 const timeAgo = (timestamp) => {
   if (!timestamp) return '';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -32,7 +31,6 @@ const NotificationBell = () => {
     return () => unsubscribe();
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -59,77 +57,70 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="position-relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       <button 
-        className="btn btn-link text-white position-relative p-2" 
         onClick={() => setIsOpen(!isOpen)}
-        style={{ textDecoration: 'none' }}
+        className="relative p-2 rounded-lg bg-neutral-800/80 border border-neutral-700/60 text-neutral-300 hover:text-white hover:bg-neutral-800 transition"
+        aria-label="Notifications"
       >
-        <FaBell size={24} style={{ color: '#C9A227' }} />
+        <Bell className="w-5 h-5 text-gold" />
         {unreadCount > 0 && (
-          <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.75rem' }}>
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div 
-          className="dropdown-menu dropdown-menu-end show shadow-lg mt-2 p-0" 
-          style={{ 
-            position: 'absolute', 
-            right: 0, 
-            minWidth: '320px', 
-            maxHeight: '400px',
-            backgroundColor: '#1B1B1B', 
-            border: '1px solid #333',
-            zIndex: 1050,
-            overflowY: 'auto'
-          }}
-        >
-          <div className="d-flex justify-content-between align-items-center p-3 border-bottom border-secondary sticky-top" style={{ backgroundColor: '#1B1B1B' }}>
-            <h6 className="mb-0 text-white fw-bold">Notifications</h6>
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-neutral-800">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-white m-0">Notifications</h3>
+              {unreadCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-gold/20 text-gold text-xs font-bold">
+                  {unreadCount} new
+                </span>
+              )}
+            </div>
             {unreadCount > 0 && (
               <button 
-                className="btn btn-sm btn-link text-gold p-0 text-decoration-none" 
-                style={{ color: '#C9A227', fontSize: '0.85rem' }}
                 onClick={handleMarkAllAsRead}
+                className="text-xs text-gold hover:text-gold-light font-medium flex items-center gap-1 transition"
               >
-                <FaCheckDouble className="me-1" />
-                Mark all as read
+                <CheckCheck className="w-3.5 h-3.5" />
+                Mark all read
               </button>
             )}
           </div>
           
-          <div className="list-group list-group-flush">
+          {/* List */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-neutral-800/60">
             {notifications.length === 0 ? (
-              <div className="text-center p-4 text-muted">
-                No new notifications
+              <div className="py-8 text-center text-neutral-400 text-sm">
+                <CircleAlert className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+                No notifications right now
               </div>
             ) : (
               notifications.map(notif => (
                 <button
                   key={notif.id}
-                  className="list-group-item list-group-item-action border-bottom border-secondary p-3 text-start"
-                  style={{ 
-                    backgroundColor: notif.isRead ? '#1B1B1B' : '#2a2a2a',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s ease'
-                  }}
                   onClick={() => handleNotificationClick(notif)}
+                  className={`w-full text-left p-3.5 transition flex items-start gap-3 hover:bg-neutral-800/60 ${
+                    notif.isRead ? 'bg-neutral-900/50 opacity-70' : 'bg-neutral-800/30'
+                  }`}
                 >
-                  <div className="d-flex w-100 justify-content-between align-items-start mb-1">
-                    <h6 className="mb-0 text-white" style={{ fontWeight: notif.isRead ? 'normal' : 'bold' }}>
-                      {!notif.isRead && <FaCircle className="text-gold me-2 mb-1" style={{ fontSize: '8px', color: '#C9A227' }} />}
-                      {notif.title}
-                    </h6>
-                    <small className="text-muted" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                      {timeAgo(notif.createdAt)}
-                    </small>
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notif.isRead ? 'bg-transparent' : 'bg-gold'}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-xs font-semibold text-neutral-100 truncate m-0">{notif.title}</p>
+                      <span className="text-[10px] text-neutral-400 shrink-0 flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" />
+                        {timeAgo(notif.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-400 line-clamp-2 m-0">{notif.message}</p>
                   </div>
-                  <p className="mb-0 text-light" style={{ fontSize: '0.85rem', paddingLeft: notif.isRead ? '0' : '16px' }}>
-                    {notif.message}
-                  </p>
                 </button>
               ))
             )}

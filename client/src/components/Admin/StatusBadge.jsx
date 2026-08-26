@@ -1,35 +1,23 @@
-import React from 'react';
+import { Badge } from "@/components/ui/badge";
+
+const statusConfig = {
+  pending: { label: 'Pending', variant: 'warning' },
+  confirmed: { label: 'Confirmed', variant: 'info' },
+  preparing: { label: 'Preparing', variant: 'secondary' },
+  ready: { label: 'Ready', variant: 'default' },
+  out_for_delivery: { label: 'Out for Delivery', variant: 'warning' },
+  completed: { label: 'Completed', variant: 'success' },
+  cancelled: { label: 'Cancelled', variant: 'destructive' },
+};
 
 const StatusBadge = ({ status }) => {
-  let badgeClass = 'badge ';
-  
-  switch (status?.toLowerCase()) {
-    case 'pending':
-      badgeClass += 'bg-warning text-dark';
-      break;
-    case 'confirmed':
-      badgeClass += 'bg-info text-dark';
-      break;
-    case 'preparing':
-      badgeClass += 'bg-primary';
-      break;
-    case 'ready':
-      badgeClass += 'bg-success';
-      break;
-    case 'completed':
-      badgeClass += 'bg-secondary';
-      break;
-    case 'cancelled':
-      badgeClass += 'bg-danger';
-      break;
-    default:
-      badgeClass += 'bg-light text-dark';
-  }
+  const normalized = (status || 'pending').toLowerCase();
+  const config = statusConfig[normalized] || { label: status || 'Unknown', variant: 'secondary' };
 
   return (
-    <span className={badgeClass} style={{ textTransform: 'capitalize', padding: '8px 12px', borderRadius: '12px' }}>
-      {status || 'Unknown'}
-    </span>
+    <Badge variant={config.variant} className="capitalize">
+      {config.label}
+    </Badge>
   );
 };
 

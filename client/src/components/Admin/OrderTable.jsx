@@ -1,115 +1,106 @@
-import React from 'react';
 import StatusBadge from './StatusBadge';
-import { FaEye } from 'react-icons/fa';
 import { parseBasePrice } from '../../utils/priceFormatter';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Eye, CreditCard, Truck, Calendar, ShoppingBag } from 'lucide-react';
 
 const OrderTable = ({ orders, onViewDetails }) => {
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleString();
-  };
-
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
-      <div className="text-center py-5 text-muted" style={{ backgroundColor: '#1B1B1B' }}>
-        <h5 style={{ fontFamily: '"Playfair Display", serif' }}>No orders found</h5>
-        <p>Try adjusting your search or filters.</p>
+      <div className="py-12 text-center text-neutral-400 border border-dashed border-neutral-800 rounded-xl bg-neutral-900/40">
+        <ShoppingBag className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+        <h3 className="text-base font-semibold text-neutral-200 m-0">No orders found</h3>
+        <p className="text-xs text-neutral-500 mt-1 m-0">Try changing your search query or filter criteria.</p>
       </div>
     );
   }
 
   return (
-    <>
-      {/* Desktop Table View */}
-      <div className="table-responsive d-none d-md-block">
-        <table className="table table-dark table-hover align-middle mb-0" style={{ backgroundColor: '#1B1B1B' }}>
-          <thead style={{ borderBottom: '2px solid #C9A227' }}>
-            <tr>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Order #</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Date & Time</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Customer</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Phone</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Type</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Payment</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Total</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Status</th>
-              <th scope="col" style={{ color: '#C9A227', backgroundColor: '#222' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.id} style={{ borderBottom: '1px solid #333' }}>
-                <td style={{ fontWeight: 'bold' }}>
-                  {order.orderNumber || order.id.slice(-6).toUpperCase()}
-                </td>
-                <td className="text-muted">{formatDate(order.createdAt)}</td>
-                <td>{order.customerName || `${order.firstName || ''} ${order.lastName || ''}`.trim() || 'N/A'}</td>
-                <td>{order.phoneNumber || order.phone || 'N/A'}</td>
-                <td style={{ textTransform: 'capitalize' }}>{order.orderType || 'N/A'}</td>
-                <td style={{ textTransform: 'capitalize' }}>{order.paymentMethod || 'N/A'}</td>
-                <td style={{ fontWeight: 'bold', color: '#C9A227' }}>KES {parseBasePrice(order.totalAmount || order.total).toLocaleString()}</td>
-                <td><StatusBadge status={order.status} /></td>
-                <td>
-                  <button 
-                    className="btn btn-sm d-flex align-items-center fw-bold" 
-                    style={{ backgroundColor: '#C9A227', color: '#111111', borderRadius: '8px' }}
-                    onClick={() => onViewDetails(order)}
-                  >
-                    <FaEye className="me-1" /> View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900/90 overflow-hidden shadow-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Order #</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead>Items</TableHead>
+            <TableHead>Total</TableHead>
+            <TableHead>Payment</TableHead>
+            <TableHead>Delivery</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order) => {
+            const itemCount = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+            const dateStr = order.createdAt?.toDate 
+              ? order.createdAt.toDate().toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+              : (order.createdAt ? new Date(order.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A');
 
-      {/* Mobile Card View */}
-      <div className="d-block d-md-none p-2">
-        {orders.map((order) => (
-          <div key={order.id} className="card border-0 mb-3" style={{ backgroundColor: '#222', borderRadius: '10px' }}>
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span style={{ fontWeight: 'bold', color: '#C9A227', fontSize: '1.1rem' }}>
-                  #{order.orderNumber || order.id.slice(-6).toUpperCase()}
-                </span>
-                <StatusBadge status={order.status} />
-              </div>
-              <div className="mb-2 text-light">
-                <div className="fw-bold fs-5">{order.customerName || `${order.firstName || ''} ${order.lastName || ''}`.trim() || 'N/A'}</div>
-                <div className="small text-muted">{order.phoneNumber || order.phone || 'N/A'}</div>
-              </div>
-              <div className="row g-2 mb-3 text-light small">
-                <div className="col-6">
-                  <span className="text-muted d-block">Time</span>
-                  {formatDate(order.createdAt)}
-                </div>
-                <div className="col-6">
-                  <span className="text-muted d-block">Type</span>
-                  <span style={{ textTransform: 'capitalize' }}>{order.orderType || 'N/A'}</span>
-                </div>
-                <div className="col-6">
-                  <span className="text-muted d-block">Payment</span>
-                  <span style={{ textTransform: 'capitalize' }}>{order.paymentMethod || 'N/A'}</span>
-                </div>
-                <div className="col-6">
-                  <span className="text-muted d-block">Total</span>
-                  <span className="fw-bold" style={{ color: '#C9A227' }}>KES {parseBasePrice(order.totalAmount || order.total).toLocaleString()}</span>
-                </div>
-              </div>
-              <button 
-                className="btn w-100 d-flex justify-content-center align-items-center fw-bold" 
-                style={{ backgroundColor: '#C9A227', color: '#111111', borderRadius: '8px' }}
+            const pStatus = (order.paymentStatus || 'pending').toLowerCase();
+            const delivery = order.deliveryProvider || order.orderType || order.deliveryMethod || 'Pickup';
+
+            return (
+              <TableRow 
+                key={order.id}
+                className="hover:bg-neutral-800/50 transition cursor-pointer"
                 onClick={() => onViewDetails(order)}
               >
-                <FaEye className="me-2" /> View Details
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
+                <TableCell className="font-mono font-bold text-gold">
+                  #{order.orderNumber || order.id.slice(-6).toUpperCase()}
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium text-neutral-100">{order.customerName || 'N/A'}</div>
+                  <div className="text-xs text-neutral-400">{order.phone || order.phoneNumber || ''}</div>
+                </TableCell>
+                <TableCell className="text-neutral-300">
+                  {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                </TableCell>
+                <TableCell className="font-semibold text-neutral-100 whitespace-nowrap">
+                  KSh {parseBasePrice(order.total || order.totalAmount || 0).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded capitalize ${
+                    pStatus === 'paid' ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/40' :
+                    pStatus === 'failed' ? 'bg-red-950/80 text-red-400 border border-red-800/40' :
+                    'bg-neutral-800 text-neutral-400'
+                  }`}>
+                    <CreditCard className="w-3 h-3" />
+                    {pStatus}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1 text-xs text-neutral-300 capitalize">
+                    <Truck className="w-3 h-3 text-neutral-500" />
+                    {delivery}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={order.status} />
+                </TableCell>
+                <TableCell className="text-xs text-neutral-400 whitespace-nowrap">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-neutral-500" />
+                    {dateStr}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onViewDetails(order)}
+                    className="text-neutral-300 hover:text-gold hover:bg-neutral-800"
+                  >
+                    <Eye className="w-4 h-4 mr-1" /> View
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

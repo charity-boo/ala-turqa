@@ -2,297 +2,340 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import OrderDetailsModal from '../../components/Admin/OrderDetailsModal';
 import OrderTable from '../../components/Admin/OrderTable';
-import { FaShoppingCart, FaDollarSign, FaClock, FaFire, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   ORDER_STATUS_FLOW,
   formatOrderStatusLabel,
-  normalizeOrderStatus,
-  subscribeToOrders,
+  subscribeToPaginatedOrders,
+  getFilteredOrdersCount
 } from '../../services/orderService';
-import { parseBasePrice } from '../../utils/priceFormatter';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { 
+  Search, 
+  RotateCcw, 
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle
+} from 'lucide-react';
 
 const ORDER_FILTERS = ['all', ...ORDER_STATUS_FLOW];
 
 const DATE_FILTERS = [
-  { label: 'All Time', value: 'all' },
   { label: 'Today', value: 'today' },
   { label: 'Yesterday', value: 'yesterday' },
   { label: 'Last 7 Days', value: '7days' },
-  { label: 'Last 30 Days', value: '30days' }
+  { label: 'Last 30 Days', value: '30days' },
+  { label: 'Custom Date', value: 'custom' },
+  { label: 'All Time', value: 'all' }
 ];
+
+const PAGE_SIZE = 10;
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Filter States - Default to 'today'
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('all');
   const [selectedDeliveryProvider, setSelectedDeliveryProvider] = useState('all');
-  const [selectedDateRange, setSelectedDateRange] = useState('all');
+  const [selectedDateRange, setSelectedDateRange] = useState('today');
+  const [customDate, setCustomDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination & Cursor State
+  const [page, setPage] = useState(1);
+  const [pageCursors, setPageCursors] = useState([null]); // Index i stores startAfter doc for page i+1
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(null);
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const location = useLocation();
 
+  // Reset pagination cursors whenever filters change
+  const handleFilterChange = (filterSetter, value) => {
+    filterSetter(value);
+    setPage(1);
+    setPageCursors([null]);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setPage(1);
+    setPageCursors([null]);
+  };
+
+  const resetFilters = () => {
+    setSelectedStatus('all');
+    setSelectedPaymentStatus('all');
+    setSelectedDeliveryProvider('all');
+    setSelectedDateRange('today');
+    setCustomDate('');
+    setSearchTerm('');
+    setPage(1);
+    setPageCursors([null]);
+  };
+
+  // Subscribe to paginated orders based on current filters and active page cursor
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+
+    const startAfterDoc = pageCursors[page - 1] || null;
+
+    const unsubscribe = subscribeToPaginatedOrders({
+      pageSize: PAGE_SIZE,
+      startAfterDoc,
+      dateRange: selectedDateRange,
+      customDateStr: customDate,
+      status: selectedStatus,
+      paymentStatus: selectedPaymentStatus,
+      deliveryProvider: selectedDeliveryProvider,
+      onData: ({ orders: fetchedOrders, lastVisible, hasMore: moreAvailable }) => {
+        setOrders(fetchedOrders);
+        setHasMore(moreAvailable);
+
+        // Store next page cursor if available
+        if (lastVisible && pageCursors.length === page) {
+          setPageCursors(prev => [...prev, lastVisible]);
+        }
+        setLoading(false);
+      },
+      onError: (err) => {
+        console.error("Firestore pagination query error:", err);
+        setError("Failed to load orders. If an index error occurs, please verify Firestore composite index requirements.");
+        setLoading(false);
+      }
+    });
+
+    // Fetch total count for active filter context
+    getFilteredOrdersCount({
+      dateRange: selectedDateRange,
+      customDateStr: customDate,
+      status: selectedStatus,
+      paymentStatus: selectedPaymentStatus,
+      deliveryProvider: selectedDeliveryProvider
+    }).then(count => {
+      setTotalCount(count);
+    });
+
+    return () => unsubscribe();
+  }, [selectedStatus, selectedPaymentStatus, selectedDeliveryProvider, selectedDateRange, customDate, page]);
+
+  // Handle route state navigation (if opened from another page)
   useEffect(() => {
     if (location.state?.orderId && orders.length > 0) {
       const order = orders.find(o => o.id === location.state.orderId);
       if (order) {
         setSelectedOrder(order);
-        // Clear state so it doesn't reopen on refresh
         window.history.replaceState({}, document.title);
       }
     }
   }, [location.state, orders]);
 
-  useEffect(() => {
-    const unsubscribe = subscribeToOrders((data) => {
-      setOrders(data);
-      setLoading(false);
-    }, 200); // Increased buffer to allow better client-side date filtering
-    return () => unsubscribe();
-  }, []);
-
+  // Client-side search filtering within the current active paginated set
   const filteredOrders = useMemo(() => {
-    let startDate = null;
-    let endDate = null;
-    const now = new Date();
-    
-    if (selectedDateRange === 'today') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (selectedDateRange === 'yesterday') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (selectedDateRange === '7days') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-    } else if (selectedDateRange === '30days') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-    }
-
+    if (!searchTerm.trim()) return orders;
+    const needle = searchTerm.toLowerCase();
     return orders.filter((order) => {
-      // Status filter
-      const normalizedStatus = normalizeOrderStatus(order);
-      if (selectedStatus !== 'all' && normalizedStatus !== selectedStatus) return false;
-
-      // Payment filter
-      if (selectedPaymentStatus !== 'all') {
-         const pStatus = (order.paymentStatus || 'pending').toLowerCase();
-         if (pStatus !== selectedPaymentStatus) return false;
-      }
-      
-      // Delivery filter
-      if (selectedDeliveryProvider !== 'all') {
-         const method = (order.deliveryMethod || order.orderType || '').toLowerCase();
-         const provider = (order.deliveryProvider || '').toLowerCase();
-         if (selectedDeliveryProvider === 'pickup') {
-            if (method !== 'pickup') return false;
-         } else {
-            if (provider !== selectedDeliveryProvider) return false;
-         }
-      }
-
-      // Date filter
-      if (startDate || endDate) {
-         if (!order.createdAt) return false;
-         const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-         if (startDate && orderDate < startDate) return false;
-         if (endDate && orderDate >= endDate) return false;
-      }
-
-      // Search filter
-      if (!searchTerm.trim()) return true;
-      const needle = searchTerm.toLowerCase();
       return [
         order.orderNumber,
         order.customerName,
         order.phone,
+        order.phoneNumber,
         order.email,
         order.deliveryProvider,
       ]
         .filter(Boolean)
-        .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(needle));
     });
-  }, [orders, searchTerm, selectedStatus, selectedPaymentStatus, selectedDeliveryProvider, selectedDateRange]);
+  }, [orders, searchTerm]);
 
-  const summary = useMemo(() => {
-    let todayOrders = 0;
-    let todaySales = 0;
-    let pendingOrders = 0;
-    let preparingOrders = 0;
-    let completedOrders = 0;
-    let cancelledOrders = 0;
+  const handleNextPage = () => {
+    if (hasMore) {
+      setPage(prev => prev + 1);
+    }
+  };
 
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(prev => prev - 1);
+    }
+  };
 
-    orders.forEach((order) => {
-      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
-      const isToday = orderDate.getTime() >= startOfToday;
-      const normalizedStatus = normalizeOrderStatus(order);
-
-      if (isToday) {
-        todayOrders++;
-        const pStatus = (order.paymentStatus || '').toLowerCase();
-        const pMethod = (order.paymentMethod || '').toLowerCase();
-        if (pStatus === 'paid' || (pMethod === 'cash' && normalizedStatus === 'completed')) {
-          todaySales += parseBasePrice(order.totalAmount || order.total || 0);
-        }
-      }
-
-      if (normalizedStatus === 'pending') pendingOrders++;
-      else if (normalizedStatus === 'preparing') preparingOrders++;
-      else if (normalizedStatus === 'completed') completedOrders++;
-      else if (normalizedStatus === 'cancelled') cancelledOrders++;
-    });
-
-    return { todayOrders, todaySales, pendingOrders, preparingOrders, completedOrders, cancelledOrders };
-  }, [orders]);
-
-  if (loading) {
-    return <div className="text-light p-4">Loading orders...</div>;
-  }
-
-  if (error) {
-    return <div className="alert alert-danger m-4">{error}</div>;
-  }
+  const isFiltered = selectedStatus !== 'all' || selectedPaymentStatus !== 'all' || selectedDeliveryProvider !== 'all' || selectedDateRange !== 'today' || searchTerm.trim() !== '' || customDate !== '';
 
   return (
-    <div className="text-light">
-      <div className="row g-3 mb-4">
-        <div className="col-6 col-md-4 col-lg-2">
-          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
-            <div className="card-body text-center p-3">
-              <FaShoppingCart size={24} className="mb-2" style={{ color: '#C9A227' }} />
-              <div className="text-muted small fw-bold text-uppercase">Today's Orders</div>
-              <div className="fs-4 fw-bold mt-1 text-light">{summary.todayOrders}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4 col-lg-2">
-          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
-            <div className="card-body text-center p-3">
-              <FaDollarSign size={24} className="mb-2 text-success" />
-              <div className="text-muted small fw-bold text-uppercase">Today's Sales</div>
-              <div className="fs-5 fw-bold mt-1 text-success">KES {summary.todaySales.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4 col-lg-2">
-          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
-            <div className="card-body text-center p-3">
-              <FaClock size={24} className="mb-2 text-warning" />
-              <div className="text-muted small fw-bold text-uppercase">Pending</div>
-              <div className="fs-4 fw-bold mt-1 text-warning">{summary.pendingOrders}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4 col-lg-2">
-          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
-            <div className="card-body text-center p-3">
-              <FaFire size={24} className="mb-2 text-orange" style={{ color: '#fd7e14' }} />
-              <div className="text-muted small fw-bold text-uppercase">Preparing</div>
-              <div className="fs-4 fw-bold mt-1 text-orange" style={{ color: '#fd7e14' }}>{summary.preparingOrders}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4 col-lg-2">
-          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
-            <div className="card-body text-center p-3">
-              <FaCheckCircle size={24} className="mb-2 text-info" />
-              <div className="text-muted small fw-bold text-uppercase">Completed</div>
-              <div className="fs-4 fw-bold mt-1 text-info">{summary.completedOrders}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4 col-lg-2">
-          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
-            <div className="card-body text-center p-3">
-              <FaTimesCircle size={24} className="mb-2 text-danger" />
-              <div className="text-muted small fw-bold text-uppercase">Cancelled</div>
-              <div className="fs-4 fw-bold mt-1 text-danger">{summary.cancelledOrders}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center mb-3">
-        <div className="d-flex gap-2 flex-wrap">
-          {ORDER_FILTERS.map((status) => (
-            <button
-              key={status}
-              onClick={() => setSelectedStatus(status)}
-              className="btn btn-sm"
-              style={{
-                backgroundColor: selectedStatus === status ? '#C9A227' : '#1B1B1B',
-                color: selectedStatus === status ? '#111111' : '#FFFFFF',
-              }}
-            >
-              {status === 'all' ? 'All' : formatOrderStatusLabel(status)}
-            </button>
-          ))}
-        </div>
-        <input
-          className="form-control bg-dark text-light border-secondary"
-          style={{ maxWidth: 360 }}
-          placeholder="Search order, customer, phone, provider..."
+    <div className="space-y-6">
+      {/* Prominent Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-3 w-4 h-4 text-neutral-400" />
+        <Input
+          className="pl-10 h-11 text-base bg-neutral-900 border-neutral-800 focus:border-gold"
+          placeholder="Search orders by order number, customer, phone or email..."
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
         />
       </div>
 
-      <div className="d-flex flex-wrap gap-2 mb-3">
-        <select 
-          className="form-select form-select-sm bg-dark text-light border-secondary" 
-          style={{ width: 'auto' }}
-          value={selectedPaymentStatus}
-          onChange={e => setSelectedPaymentStatus(e.target.value)}
-        >
-          <option value="all">Payment: All</option>
-          <option value="pending">Pending</option>
-          <option value="paid">Paid</option>
-          <option value="failed">Failed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="refunded">Refunded</option>
-        </select>
+      {/* Filter Controls Row */}
+      <div className="space-y-3 p-4 rounded-xl bg-neutral-900/60 border border-neutral-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Status Quick Filter Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-neutral-400 mr-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> Status:
+            </span>
+            {ORDER_FILTERS.map((status) => (
+              <Button
+                key={status}
+                size="sm"
+                variant={selectedStatus === status ? "default" : "outline"}
+                onClick={() => handleFilterChange(setSelectedStatus, status)}
+                className="h-8 text-xs capitalize"
+              >
+                {status === 'all' ? 'All' : formatOrderStatusLabel(status)}
+              </Button>
+            ))}
+          </div>
 
-        <select 
-          className="form-select form-select-sm bg-dark text-light border-secondary" 
-          style={{ width: 'auto' }}
-          value={selectedDeliveryProvider}
-          onChange={e => setSelectedDeliveryProvider(e.target.value)}
-        >
-          <option value="all">Delivery: All</option>
-          <option value="vipi">Vipi</option>
-          <option value="glovo">Glovo</option>
-          <option value="pickup">Pickup</option>
-        </select>
+          {isFiltered && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-xs text-gold hover:text-gold-light hover:bg-neutral-800 ml-auto"
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset to Today
+            </Button>
+          )}
+        </div>
 
-        <select 
-          className="form-select form-select-sm bg-dark text-light border-secondary" 
-          style={{ width: 'auto' }}
-          value={selectedDateRange}
-          onChange={e => setSelectedDateRange(e.target.value)}
-        >
-          {DATE_FILTERS.map(f => <option key={f.value} value={f.value}>Date: {f.label}</option>)}
-        </select>
-        
-        <div className="text-muted d-flex align-items-center small ms-auto">
-          Showing {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} (from recent buffer)
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2 border-t border-neutral-800/60">
+          <div>
+            <label className="text-[11px] font-medium text-neutral-400 mb-1 block">Payment Status</label>
+            <Select
+              value={selectedPaymentStatus}
+              onChange={(e) => handleFilterChange(setSelectedPaymentStatus, e.target.value)}
+            >
+              <option value="all">Payment: All</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-medium text-neutral-400 mb-1 block">Delivery Provider</label>
+            <Select
+              value={selectedDeliveryProvider}
+              onChange={(e) => handleFilterChange(setSelectedDeliveryProvider, e.target.value)}
+            >
+              <option value="all">Delivery: All</option>
+              <option value="Vipi">Vipi</option>
+              <option value="Glovo">Glovo</option>
+              <option value="pickup">Pickup / Restaurant</option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-medium text-neutral-400 mb-1 block">Date Range</label>
+            <Select
+              value={selectedDateRange}
+              onChange={(e) => handleFilterChange(setSelectedDateRange, e.target.value)}
+            >
+              {DATE_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </Select>
+          </div>
+
+          {selectedDateRange === 'custom' && (
+            <div>
+              <label className="text-[11px] font-medium text-neutral-400 mb-1 block">Select Date</label>
+              <Input 
+                type="date" 
+                value={customDate}
+                onChange={(e) => handleFilterChange(setCustomDate, e.target.value)}
+                className="h-9 bg-neutral-950 border-neutral-800 text-xs"
+              />
+            </div>
+          )}
+
+          <div className="sm:col-span-3 lg:col-span-1 flex items-end justify-end">
+            <span className="text-xs text-neutral-400 font-mono py-2">
+              {selectedDateRange === 'today' ? "Today's Orders: " : "Matching Orders: "}
+              <strong className="text-gold font-bold text-sm">
+                {totalCount !== null ? totalCount : filteredOrders.length}
+              </strong>
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="card border-0" style={{ backgroundColor: '#1B1B1B' }}>
-        <div className="card-body p-0">
-          <OrderTable 
-            orders={filteredOrders} 
-            onViewDetails={(order) => setSelectedOrder(order)} 
-          />
+      {error && (
+        <div className="p-4 rounded-xl border border-red-800 bg-red-950/40 text-red-400 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Orders Table Loading Skeleton or Results */}
+      {loading ? (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-xl bg-neutral-900" />
+          ))}
+        </div>
+      ) : (
+        <OrderTable
+          orders={filteredOrders}
+          onViewDetails={(order) => setSelectedOrder(order)}
+        />
+      )}
+
+      {/* Cursor-Based Pagination Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-neutral-900/60 border border-neutral-800">
+        <span className="text-xs text-neutral-400 font-mono">
+          Page <strong className="text-neutral-200">{page}</strong> 
+          {totalCount !== null && ` (${(page - 1) * PAGE_SIZE + 1} - ${Math.min(page * PAGE_SIZE, totalCount)} of ${totalCount})`}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevPage}
+            disabled={page === 1 || loading}
+            className="text-xs gap-1 border-neutral-800 hover:bg-neutral-800"
+          >
+            <ChevronLeft className="w-4 h-4" /> Previous
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextPage}
+            disabled={!hasMore || loading}
+            className="text-xs gap-1 border-neutral-800 hover:bg-neutral-800 text-gold"
+          >
+            Next <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
-      {selectedOrder ? (
-        <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-      ) : null}
+      {/* Order Details Sheet */}
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+        />
+      )}
     </div>
   );
 };

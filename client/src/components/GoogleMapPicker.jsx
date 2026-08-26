@@ -18,13 +18,6 @@ const libraries = ['places'];
 const GoogleMapPicker = ({ onLocationSelect, initialLocation }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-  // 1. Temporary safe debugging (as requested)
-  console.log(
-    "Google Maps Key loaded:",
-    Boolean(apiKey),
-    apiKey?.length
-  );
-
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey || "",
     libraries

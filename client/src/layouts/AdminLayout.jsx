@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../components/Admin/AdminSidebar';
 import AdminHeader from '../components/Admin/AdminHeader';
+import { Sheet, SheetContent } from '../components/ui/sheet';
 import useAuth from '../hooks/useAuth';
 
 const AdminLayout = () => {
@@ -9,28 +10,29 @@ const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="d-flex" style={{ minHeight: '100vh', backgroundColor: '#111111' }}>
-      <div className="d-none d-md-block">
+    <div className="flex h-screen bg-neutral-950 text-neutral-100 overflow-hidden font-sans">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block shrink-0 h-full">
         <AdminSidebar role={role} />
       </div>
 
+      {/* Mobile Drawer/Sheet */}
       {mobileOpen && (
-        <>
-          <div
-            className="position-fixed top-0 start-0 w-100 h-100"
-            style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1040 }}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="position-fixed top-0 start-0 h-100" style={{ zIndex: 1041 }}>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <div className="p-0 h-full">
             <AdminSidebar role={role} onNavigate={() => setMobileOpen(false)} />
           </div>
-        </>
+        </Sheet>
       )}
 
-      <main className="flex-grow-1 p-3 p-md-4">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <AdminHeader onToggleSidebar={() => setMobileOpen((prev) => !prev)} />
-        <Outlet />
-      </main>
+        
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
