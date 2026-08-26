@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useParams, Link, Navigate } from 'react-router-dom';
 import { FaCheckCircle, FaReceipt, FaClock, FaPhone, FaMotorcycle, FaStore, FaSpinner } from 'react-icons/fa';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
 import { parseBasePrice } from '../../utils/priceFormatter';
 import './OrderTracking.css'; // Let's use a small css file for the timeline animations
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const ORDER_STATUS_FLOW = {
   Delivery: [
@@ -35,29 +35,42 @@ const OrderTracking = () => {
   useEffect(() => {
     if (!orderId) return;
 
-    setLoading(true);
-    const orderRef = doc(db, 'orders', orderId);
-
-    const unsubscribe = onSnapshot(orderRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setOrder({ id: docSnap.id, ...docSnap.data() });
-        setError('');
-      } else {
-        setError('Order not found');
+    let isMounted = true;
+    
+    const fetchTrackingData = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/tracking/${orderId}`);
+        if (!response.ok) {
+          if (response.status === 404) throw new Error('Order not found');
+          throw new Error('Failed to load tracking data.');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setOrder(data);
+          setError('');
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Error fetching order:", err);
+          if (initialOrder && !order) {
+            setOrder(initialOrder); // Keep showing initial data initially
+          } else if (!order) {
+            setError(err.message || 'Failed to load tracking data. Make sure you are connected to the internet.');
+          }
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    }, (err) => {
-      console.error("Error listening to order:", err);
-      // Fallback in case they don't have permission (shouldn't happen with updated rules)
-      if (err.code === 'permission-denied' && initialOrder) {
-        setOrder(initialOrder); // Keep showing initial data
-      } else {
-        setError('Failed to load tracking data. Make sure you are connected to the internet.');
-      }
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchTrackingData();
+    // Poll every 5 seconds since real-time is disabled for public endpoint
+    const intervalId = setInterval(fetchTrackingData, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [orderId, initialOrder]);
 
   if (error) {

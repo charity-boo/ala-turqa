@@ -29,3 +29,5 @@ export const generatePaymentNumber = () => {
   const random = Math.floor(1000 + Math.random() * 9000);
   return `PAY-${yyyy}${mm}${dd}-${random}`;
 };
+
+

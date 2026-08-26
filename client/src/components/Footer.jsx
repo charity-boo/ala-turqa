@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaFacebook, FaInstagram, FaTwitter, FaTiktok, FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
+import { FaInstagram, FaTiktok, FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
 
 const Footer = () => {
   return (
@@ -10,9 +10,7 @@ const Footer = () => {
             <h3 className="text-gold mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>A La Turqa</h3>
             <p className="text-muted">Experience the authentic taste of Turkey. Our chefs bring centuries of culinary tradition to your table, prepared with the finest ingredients and boundless passion.</p>
             <div className="mt-4">
-              <a href="#" className="text-gold me-3 fs-5"><FaFacebook /></a>
               <a href="https://www.instagram.com/a_la_turqa_?igsi=MXF2NW95bHNiaW95Mw==" target="_blank" rel="noopener noreferrer" className="text-gold me-3 fs-5"><FaInstagram /></a>
-              <a href="#" className="text-gold me-3 fs-5"><FaTwitter /></a>
               <a href="https://www.tiktok.com/@a.la.turqa?_r=1&_t=ZS-997T4mCG896" target="_blank" rel="noopener noreferrer" className="text-gold fs-5"><FaTiktok /></a>
             </div>
           </div>

@@ -20,6 +20,16 @@ import ReviewsAdmin from './pages/Admin/ReviewsAdmin';
 import FeedbackAdmin from './pages/Admin/FeedbackAdmin';
 import MenuManagement from './components/Admin/MenuManagement';
 import Orders from './pages/Admin/Orders';
+import Dashboard from './pages/Admin/Dashboard';
+import Analytics from './pages/Admin/Analytics';
+import Customers from './pages/Admin/Customers';
+import Staff from './pages/Admin/Staff';
+import Categories from './pages/Admin/Categories';
+import Deliveries from './pages/Admin/Deliveries';
+import Payments from './pages/Admin/Payments';
+import Login from './pages/Admin/Login';
+import Setup from './pages/Admin/Setup';
+import Settings from './pages/Admin/Settings';
 
 function App() {
   return (
@@ -39,12 +49,23 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
 
+        <Route path="/admin/login" element={<Login />} />
+        <Route path="/admin/setup" element={<Setup />} />
+
         {/* Admin Dashboard */}
         <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
+          <Route index element={<Dashboard />} />
           <Route path="menu" element={<MenuManagement />} />
+          <Route path="categories" element={<Categories />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="staff" element={<Staff />} />
+          <Route path="deliveries" element={<Deliveries />} />
+          <Route path="payments" element={<Payments />} />
           <Route path="reviews" element={<ReviewsAdmin />} />
           <Route path="feedback" element={<FeedbackAdmin />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </Router>

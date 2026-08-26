@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { subscribeToOrders, normalizeOrderStatus, getKenyaMidnight, formatOrderStatusLabel } from '../../services/orderService';
+import { subscribeToOrders, normalizeOrderStatus, getKenyaMidnight } from '../../services/orderService';
 import StatCard from '../../components/Admin/StatCard';
 import StatusBadge from '../../components/Admin/StatusBadge';
 import { parseBasePrice } from '../../utils/priceFormatter';
@@ -32,6 +32,8 @@ const Dashboard = () => {
 
     const totalSales = todayOrdersList.reduce((sum, order) => sum + parseBasePrice(order.total || order.totalAmount || 0), 0);
     const completedOrders = todayOrdersList.filter(o => normalizeOrderStatus(o) === 'completed').length;
+    const cancelledOrders = todayOrdersList.filter(o => normalizeOrderStatus(o) === 'cancelled').length;
+    const failedPayments = todayOrdersList.filter(o => o.paymentStatus === 'failed').length;
     
     const activeStatuses = ['pending', 'confirmed', 'preparing'];
     const attentionOrdersList = orders.filter(o => activeStatuses.includes(normalizeOrderStatus(o)));
@@ -41,7 +43,10 @@ const Dashboard = () => {
         totalOrders: todayOrdersList.length,
         totalSales,
         pendingOrders: attentionOrdersList.length,
-        completedOrders
+        completedOrders,
+        cancelledOrders,
+        failedPayments,
+        averageOrderValue: completedOrders > 0 ? totalSales / completedOrders : 0
       },
       attentionOrders: attentionOrdersList,
       recentOrders: orders.slice(0, 8)
@@ -105,10 +110,22 @@ const Dashboard = () => {
           <StatCard label="Today's Sales" value={`KES ${stats.totalSales.toLocaleString()}`} />
         </div>
         <div className="col-12 col-md-6 col-xl-3">
-          <StatCard label="Pending Orders" value={stats.pendingOrders} />
+          <StatCard label="Average Order Value" value={`KES ${stats.averageOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
         </div>
         <div className="col-12 col-md-6 col-xl-3">
+          <StatCard label="Pending Orders" value={stats.pendingOrders} />
+        </div>
+      </div>
+
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-4">
           <StatCard label="Completed Orders" value={stats.completedOrders} />
+        </div>
+        <div className="col-12 col-md-4">
+          <StatCard label="Cancelled Orders" value={stats.cancelledOrders} />
+        </div>
+        <div className="col-12 col-md-4">
+          <StatCard label="Failed Payments" value={stats.failedPayments} />
         </div>
       </div>
 

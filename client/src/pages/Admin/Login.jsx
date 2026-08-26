@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 const Login = () => {
   const { login, currentUser, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
@@ -10,12 +12,33 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [checkingSetup, setCheckingSetup] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/admin/has-setup`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.hasSetup) {
+          navigate('/admin/setup', { replace: true });
+        } else {
+          setCheckingSetup(false);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to check setup:', err);
+        setCheckingSetup(false);
+      });
+  }, [navigate]);
 
   useEffect(() => {
     if (!loading && currentUser && isAdmin) {
       navigate('/admin', { replace: true });
     }
   }, [loading, currentUser, isAdmin, navigate]);
+
+  if (checkingSetup || (loading && !currentUser)) {
+    return <div className="container py-5 text-center text-light">Loading...</div>;
+  }
 
   if (!loading && currentUser && isAdmin) {
     return <Navigate to="/admin" replace />;

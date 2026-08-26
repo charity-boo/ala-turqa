@@ -121,7 +121,13 @@ const MenuManagement = () => {
             className="form-control bg-dark text-light border-secondary"
             placeholder="Search items by name, description, or category..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              const term = e.target.value;
+              setSearchTerm(term);
+              if (term && selectedCategory !== 'All') {
+                setSelectedCategory('All');
+              }
+            }}
           />
           <select
             className="form-select bg-dark text-light border-secondary"
@@ -152,8 +158,6 @@ const MenuManagement = () => {
                   <th>Category</th>
                   <th>Price</th>
                   <th>Available</th>
-                  <th>Featured</th>
-                  <th>Popular</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
@@ -178,8 +182,6 @@ const MenuManagement = () => {
                         {item.available ? <FaCheck /> : <FaTimes />}
                       </button>
                     </td>
-                    <td>{item.featured ? <span className="badge bg-warning text-dark">Yes</span> : <span className="badge bg-secondary">No</span>}</td>
-                    <td>{item.popular ? <span className="badge bg-danger">Yes</span> : <span className="badge bg-secondary">No</span>}</td>
                     <td className="text-end">
                       <button className="btn btn-sm btn-outline-info me-2" onClick={() => openEditModal(item)}>
                         <FaEdit />
@@ -192,7 +194,7 @@ const MenuManagement = () => {
                 ))}
                 {filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center py-4 text-muted">No menu items found matching filters.</td>
+                    <td colSpan="6" className="text-center py-4 text-muted">No menu items found matching filters.</td>
                   </tr>
                 )}
               </tbody>

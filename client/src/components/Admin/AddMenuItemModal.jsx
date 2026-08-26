@@ -12,9 +12,6 @@ const AddMenuItemModal = ({ onClose, onAdd, categories = [] }) => {
     price: '',
     description: '',
     preparationTime: '',
-    featured: false,
-    popular: false,
-    vegetarian: false,
     spicy: false,
     available: true
   });
@@ -110,18 +107,6 @@ const AddMenuItemModal = ({ onClose, onAdd, categories = [] }) => {
                 </div>
                 
                 <div className="col-12 d-flex flex-wrap gap-4 mt-4">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="addFeatured" name="featured" checked={formData.featured} onChange={handleChange} />
-                    <label className="form-check-label" htmlFor="addFeatured">Featured</label>
-                  </div>
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="addPopular" name="popular" checked={formData.popular} onChange={handleChange} />
-                    <label className="form-check-label" htmlFor="addPopular">Popular</label>
-                  </div>
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="addVegetarian" name="vegetarian" checked={formData.vegetarian} onChange={handleChange} />
-                    <label className="form-check-label" htmlFor="addVegetarian">Vegetarian</label>
-                  </div>
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" id="addSpicy" name="spicy" checked={formData.spicy} onChange={handleChange} />
                     <label className="form-check-label" htmlFor="addSpicy">Spicy</label>

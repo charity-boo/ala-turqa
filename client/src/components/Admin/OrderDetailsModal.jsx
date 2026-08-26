@@ -9,6 +9,15 @@ const OrderDetailsModal = ({ order, onClose }) => {
   if (!order) return null;
 
   const handleStatusUpdate = async (newStatus) => {
+    if (newStatus === 'cancelled') {
+      const isPaid = (order.paymentStatus || '').toLowerCase() === 'paid';
+      const msg = isPaid 
+        ? "Are you sure you want to cancel this order? It has already been paid. A manual refund may be required. This action cannot be undone."
+        : "Are you sure you want to cancel this order? This action cannot be undone.";
+      const confirm = window.confirm(msg);
+      if (!confirm) return;
+    }
+    
     try {
       setUpdating(true);
       await updateOrderStatus(order.id, newStatus);
@@ -21,6 +30,8 @@ const OrderDetailsModal = ({ order, onClose }) => {
 
   const getAvailableActions = (currentStatus) => {
     const status = currentStatus?.toLowerCase() || 'pending';
+    const isPickup = (order.orderType || order.deliveryMethod || '').toLowerCase() === 'pickup';
+    
     switch (status) {
       case 'pending':
         return [
@@ -38,6 +49,12 @@ const OrderDetailsModal = ({ order, onClose }) => {
           { label: 'Cancel Order', value: 'cancelled', class: 'btn-danger' }
         ];
       case 'ready':
+        return isPickup ? [
+          { label: 'Mark as Completed', value: 'completed', class: 'btn-secondary' }
+        ] : [
+          { label: 'Out for Delivery', value: 'out_for_delivery', class: 'btn-warning' }
+        ];
+      case 'out_for_delivery':
         return [
           { label: 'Mark as Completed', value: 'completed', class: 'btn-secondary' }
         ];

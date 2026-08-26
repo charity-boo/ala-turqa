@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaClock, FaFire, FaLeaf, FaStar } from 'react-icons/fa';
+import { FaClock, FaFire, FaLeaf } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
 import { formatPrice, parseBasePrice } from '../../utils/priceFormatter';
 import SizeSelectorModal from './SizeSelectorModal';
@@ -41,9 +41,6 @@ const MenuCard = ({ item }) => {
             onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
           />
           <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px', flexDirection: 'column' }}>
-            {item.featured && <span className="badge" style={{ backgroundColor: '#C9A227', color: '#111111' }}><FaStar /> Featured</span>}
-            {item.popular && <span className="badge bg-danger"><FaFire /> Popular</span>}
-            {item.vegetarian && <span className="badge bg-success"><FaLeaf /> Veg</span>}
           </div>
         </div>
         <div className="card-body d-flex flex-column">

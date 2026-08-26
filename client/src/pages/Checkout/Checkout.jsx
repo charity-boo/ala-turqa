@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { AuthContext } from '../../context/authContext';
 import { createOrder } from '../../services/orderService';
-import { FaMoneyBillWave, FaMobileAlt, FaMotorcycle, FaStore, FaSpinner, FaCreditCard } from 'react-icons/fa';
+import { FaMoneyBillWave, FaMobileAlt, FaMotorcycle, FaStore, FaSpinner } from 'react-icons/fa';
 import { initiateStkPush, pollPaymentStatus } from '../../services/mpesaService';
 import GoogleMapPicker from '../../components/GoogleMapPicker';
 import { generateOrderNumber } from '../../utils/idGenerator';
@@ -35,7 +35,7 @@ const Checkout = () => {
     landmark: '',
     orderType: 'Delivery', // Delivery or Pickup
     deliveryProvider: 'Vipi', // Vipi or Glovo
-    paymentMethod: 'M-Pesa', // M-Pesa, Card
+    paymentMethod: 'M-Pesa', // M-Pesa
     notes: '',
     deliveryLocation: null // { latitude, longitude, formattedAddress }
   });
@@ -143,9 +143,10 @@ const Checkout = () => {
 
         // 4. Handle terminal payment statuses
         if (finalDoc.status === 'completed') {
+          clearTimeout(abortControllerRef.current);
           clearCart();
           setPaymentStatus(null);
-          navigate('/track/' + savedOrder.id, { state: { order: { ...savedOrder, paymentStatus: 'paid', mpesaReceiptNumber: finalDoc.mpesaReceiptNumber, paymentMethod: 'M-Pesa' } } });
+          navigate('/track/' + savedOrder.trackingId, { state: { order: { ...savedOrder, paymentStatus: 'paid', mpesaReceiptNumber: finalDoc.mpesaReceiptNumber, paymentMethod: 'M-Pesa' } } });
         } else if (finalDoc.status === 'cancelled') {
           setError("Payment cancelled. No payment was made.");
           setPaymentStatus(null);
@@ -155,8 +156,10 @@ const Checkout = () => {
           setPaymentStatus(null);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-      } else if (formData.paymentMethod === 'Card') {
-        throw new Error("Card payment is not yet implemented.");
+      } else {
+        // Bypass M-Pesa for testing/cash
+        clearCart();
+        navigate('/track/' + savedOrder.trackingId, { state: { order: { ...savedOrder, paymentMethod: formData.paymentMethod } } });
       }
     } catch (err) {
       console.error("Checkout Error:", err);
@@ -259,10 +262,10 @@ const Checkout = () => {
                     <label className="form-check-label" htmlFor="mpesa"><FaMobileAlt className="me-2"/>Pay via M-Pesa</label>
                   </div>
                   <div className="form-check">
-                    <input className="form-check-input" type="radio" name="paymentMethod" id="card" value="Card" checked={formData.paymentMethod === 'Card'} onChange={handleInputChange} />
-                    <label className="form-check-label" htmlFor="card"><FaCreditCard className="me-2"/>Pay via Card</label>
+                    <input className="form-check-input" type="radio" name="paymentMethod" id="cash" value="Cash" checked={formData.paymentMethod === 'Cash'} onChange={handleInputChange} />
+                    <label className="form-check-label" htmlFor="cash"><FaMoneyBillWave className="me-2"/>Cash / Pay on Delivery (Test Mode)</label>
                   </div>
-                </div>
+                  </div>
               </div>
 
               <div className="mb-4">

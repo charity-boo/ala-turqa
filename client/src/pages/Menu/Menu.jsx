@@ -15,9 +15,6 @@ const Menu = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [filters, setFilters] = useState({
-    featured: false,
-    popular: false,
-    vegetarian: false,
     spicy: false
   });
 
@@ -43,22 +40,27 @@ const Menu = () => {
   };
 
   const filteredItems = items.filter(item => {
+    const trimmedTerm = (searchTerm || '').trim().toLowerCase();
+
+    // Search match (name, title, description, category)
+    if (trimmedTerm) {
+      const name = (item.name || item.title || '').toLowerCase();
+      const desc = (item.description || '').toLowerCase();
+      const cat = (item.category || '').toLowerCase();
+      
+      const matchSearch = name.includes(trimmedTerm) || desc.includes(trimmedTerm) || cat.includes(trimmedTerm);
+      if (!matchSearch) return false;
+    }
 
     // Category match
-    if (activeCategory !== 'All' && item.category !== activeCategory) {
-      return false;
+    if (activeCategory !== 'All') {
+      const itemCat = (item.category || '').toLowerCase();
+      if (itemCat !== activeCategory.toLowerCase()) {
+        return false;
+      }
     }
-    // Search match
-    if (searchTerm) {
-      const lowerTerm = searchTerm.toLowerCase();
-      const matchName = item.name.toLowerCase().includes(lowerTerm);
-      const matchDesc = item.description && item.description.toLowerCase().includes(lowerTerm);
-      if (!matchName && !matchDesc) return false;
-    }
+
     // Filters match
-    if (filters.featured && !item.featured) return false;
-    if (filters.popular && !item.popular) return false;
-    if (filters.vegetarian && !item.vegetarian) return false;
     if (filters.spicy && !item.spicy) return false;
 
     return true;
@@ -73,7 +75,15 @@ const Menu = () => {
           </h1>
         </div>
         
-        <MenuSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+        <MenuSearch 
+          searchTerm={searchTerm} 
+          setSearchTerm={(term) => {
+            setSearchTerm(term);
+            if (term && activeCategory !== 'All') {
+              setActiveCategory('All');
+            }
+          }} 
+        />
 
         <CategoryTabs activeCategory={activeCategory} setActiveCategory={setActiveCategory} categories={categories} />
         <MenuFilters filters={filters} setFilters={setFilters} />

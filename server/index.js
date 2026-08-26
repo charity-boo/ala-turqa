@@ -10,9 +10,10 @@ app.use(express.json());
 
 // Routes
 // app.use('/api/menu', require('./routes/menuRoutes'));
-// app.use('/api/orders', require('./routes/orderRoutes'));
-// app.use('/api/reservations', require('./routes/reservationRoutes'));
-app.use('/api/payment/mpesa', require('./routes/mpesaRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
+// M-Pesa payment routes are handled by Cloud Functions (functions/routes/mpesaRoutes.js)
+app.use('/api/tracking', require('./routes/trackingRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Ala Turqa API is running');

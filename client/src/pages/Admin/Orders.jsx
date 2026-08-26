@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import OrderDetailsModal from '../../components/Admin/OrderDetailsModal';
 import OrderTable from '../../components/Admin/OrderTable';
+import { FaShoppingCart, FaDollarSign, FaClock, FaFire, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import {
   ORDER_STATUS_FLOW,
   formatOrderStatusLabel,
@@ -108,9 +109,44 @@ const Orders = () => {
         order.deliveryProvider,
       ]
         .filter(Boolean)
+        .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(needle));
     });
   }, [orders, searchTerm, selectedStatus, selectedPaymentStatus, selectedDeliveryProvider, selectedDateRange]);
+
+  const summary = useMemo(() => {
+    let todayOrders = 0;
+    let todaySales = 0;
+    let pendingOrders = 0;
+    let preparingOrders = 0;
+    let completedOrders = 0;
+    let cancelledOrders = 0;
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    orders.forEach((order) => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const isToday = orderDate.getTime() >= startOfToday;
+      const normalizedStatus = normalizeOrderStatus(order);
+
+      if (isToday) {
+        todayOrders++;
+        const pStatus = (order.paymentStatus || '').toLowerCase();
+        const pMethod = (order.paymentMethod || '').toLowerCase();
+        if (pStatus === 'paid' || (pMethod === 'cash' && normalizedStatus === 'completed')) {
+          todaySales += parseBasePrice(order.totalAmount || order.total || 0);
+        }
+      }
+
+      if (normalizedStatus === 'pending') pendingOrders++;
+      else if (normalizedStatus === 'preparing') preparingOrders++;
+      else if (normalizedStatus === 'completed') completedOrders++;
+      else if (normalizedStatus === 'cancelled') cancelledOrders++;
+    });
+
+    return { todayOrders, todaySales, pendingOrders, preparingOrders, completedOrders, cancelledOrders };
+  }, [orders]);
 
   if (loading) {
     return <div className="text-light p-4">Loading orders...</div>;
@@ -122,6 +158,63 @@ const Orders = () => {
 
   return (
     <div className="text-light">
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-4 col-lg-2">
+          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
+            <div className="card-body text-center p-3">
+              <FaShoppingCart size={24} className="mb-2" style={{ color: '#C9A227' }} />
+              <div className="text-muted small fw-bold text-uppercase">Today's Orders</div>
+              <div className="fs-4 fw-bold mt-1 text-light">{summary.todayOrders}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-4 col-lg-2">
+          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
+            <div className="card-body text-center p-3">
+              <FaDollarSign size={24} className="mb-2 text-success" />
+              <div className="text-muted small fw-bold text-uppercase">Today's Sales</div>
+              <div className="fs-5 fw-bold mt-1 text-success">KES {summary.todaySales.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-4 col-lg-2">
+          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
+            <div className="card-body text-center p-3">
+              <FaClock size={24} className="mb-2 text-warning" />
+              <div className="text-muted small fw-bold text-uppercase">Pending</div>
+              <div className="fs-4 fw-bold mt-1 text-warning">{summary.pendingOrders}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-4 col-lg-2">
+          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
+            <div className="card-body text-center p-3">
+              <FaFire size={24} className="mb-2 text-orange" style={{ color: '#fd7e14' }} />
+              <div className="text-muted small fw-bold text-uppercase">Preparing</div>
+              <div className="fs-4 fw-bold mt-1 text-orange" style={{ color: '#fd7e14' }}>{summary.preparingOrders}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-4 col-lg-2">
+          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
+            <div className="card-body text-center p-3">
+              <FaCheckCircle size={24} className="mb-2 text-info" />
+              <div className="text-muted small fw-bold text-uppercase">Completed</div>
+              <div className="fs-4 fw-bold mt-1 text-info">{summary.completedOrders}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-6 col-md-4 col-lg-2">
+          <div className="card border-0 h-100" style={{ backgroundColor: '#1B1B1B', borderRadius: '12px' }}>
+            <div className="card-body text-center p-3">
+              <FaTimesCircle size={24} className="mb-2 text-danger" />
+              <div className="text-muted small fw-bold text-uppercase">Cancelled</div>
+              <div className="fs-4 fw-bold mt-1 text-danger">{summary.cancelledOrders}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center mb-3">
         <div className="d-flex gap-2 flex-wrap">
           {ORDER_FILTERS.map((status) => (

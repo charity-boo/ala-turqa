@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import RatingStars from './RatingStars';
+
 import useAuth from '../../hooks/useAuth';
 import { addReview } from '../../services/reviewService';
 
 const ReviewForm = ({ onReviewAdded }) => {
   const { currentUser } = useAuth();
-  const [rating, setRating] = useState(0);
+
   const [comment, setComment] = useState('');
   const [foodId, setFoodId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,10 +13,7 @@ const ReviewForm = ({ onReviewAdded }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (rating === 0) {
-      setError('Please select a star rating.');
-      return;
-    }
+
     if (!comment.trim()) {
       setError('Please provide a comment.');
       return;
@@ -28,12 +25,12 @@ const ReviewForm = ({ onReviewAdded }) => {
       const newReview = await addReview({
         userId: currentUser.uid,
         userName: currentUser.displayName || currentUser.email.split('@')[0],
-        rating,
+
         comment: comment.trim(),
         foodId: foodId.trim() || null
       });
       onReviewAdded(newReview);
-      setRating(0);
+
       setComment('');
       setFoodId('');
     } catch (err) {
@@ -59,10 +56,7 @@ const ReviewForm = ({ onReviewAdded }) => {
       {error && <div className="alert alert-danger p-2">{error}</div>}
       
       <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label className="form-label text-light">Rating</label>
-          <RatingStars rating={rating} onRatingChange={setRating} interactive={true} />
-        </div>
+
         
         <div className="mb-3">
           <label className="form-label text-light">Your Review</label>

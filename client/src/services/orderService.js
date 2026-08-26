@@ -15,6 +15,8 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export const getKenyaMidnight = () => {
   const now = new Date();
   const kenyaFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Nairobi', year: 'numeric', month: 'numeric', day: 'numeric' });
@@ -75,16 +77,27 @@ export const subscribeToOrders = (callback, limitCount = 100) => {
  */
 export const updateOrderStatus = async (orderId, newStatus) => {
   try {
+    const { auth } = await import('./firebase');
+    const changedBy = auth?.currentUser?.email || 'admin';
     const orderRef = doc(db, COLLECTION_NAME, orderId);
-    await updateDoc(orderRef, {
+    
+    const updateData = {
       status: newStatus,
       orderStatus: newStatus,
       statusHistory: arrayUnion({
         status: newStatus,
         timestamp: new Date().toISOString(),
+        changedBy: changedBy
       }),
       updatedAt: serverTimestamp()
-    });
+    };
+
+    if (newStatus === 'cancelled') {
+      updateData.cancellationTimestamp = serverTimestamp();
+      updateData.cancelledBy = changedBy;
+    }
+
+    await updateDoc(orderRef, updateData);
   } catch (error) {
     console.error(`Error updating order ${orderId} status to ${newStatus}:`, error);
     throw error;
@@ -96,38 +109,20 @@ export const updateOrderStatus = async (orderId, newStatus) => {
  */
 export const createOrder = async (orderData) => {
   try {
-    // Generate a custom ID using the first item's name (if available) and a timestamp
-    let customId = `order-${Date.now()}`;
-    if (orderData.items && orderData.items.length > 0) {
-      const firstItem = orderData.items.find(item => item && (item.name || item.itemName));
-      const firstItemName = String(firstItem?.name || firstItem?.itemName || 'order')
-        .replace(/[^a-zA-Z0-9]/g, '-')
-        .toLowerCase();
-      // Keep it somewhat short, e.g., max 20 chars of the name
-      const shortName = firstItemName.substring(0, 20);
-      customId = `${shortName}-${Date.now()}`;
+    const response = await fetch(`${API_BASE_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create order');
     }
-
-    const docRef = doc(db, COLLECTION_NAME, customId);
     
-    const newOrderData = {
-      ...orderData,
-      status: 'pending',
-      orderStatus: 'pending',
-      statusHistory: [
-        {
-          status: 'pending',
-          timestamp: new Date().toISOString(),
-        },
-      ],
-      source: 'website',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    
-    // We use setDoc since we have a specific ID now
-    await setDoc(docRef, newOrderData);
-    return { id: docRef.id, ...newOrderData };
+    return await response.json();
   } catch (error) {
     console.error("Error creating order:", error);
     throw error;

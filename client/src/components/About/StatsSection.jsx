@@ -37,26 +37,20 @@ const StatsSection = () => {
   return (
     <section className="py-5" style={{ backgroundColor: '#111111' }}>
       <div className="container py-5 border-top border-bottom border-secondary" style={{ borderColor: 'rgba(201, 162, 39, 0.2) !important' }}>
-        <div className="row g-4 text-center slide-up">
-          <div className="col-6 col-lg-3">
+        <div className="row g-4 text-center slide-up justify-content-center">
+          <div className="col-12 col-md-4">
             <h2 className="display-4 fw-bold text-gold mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
               <AnimatedCounter target="10000" duration="2000" suffix="+" />
             </h2>
             <p className="text-muted text-uppercase tracking-widest small">Happy Customers</p>
           </div>
-          <div className="col-6 col-lg-3">
+          <div className="col-12 col-md-4">
             <h2 className="display-4 fw-bold text-gold mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
               <AnimatedCounter target="50" duration="2000" suffix="+" />
             </h2>
             <p className="text-muted text-uppercase tracking-widest small">Menu Items</p>
           </div>
-          <div className="col-6 col-lg-3">
-            <h2 className="display-4 fw-bold text-gold mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-              <AnimatedCounter target="4.8" duration="2000" />
-            </h2>
-            <p className="text-muted text-uppercase tracking-widest small">Average Rating</p>
-          </div>
-          <div className="col-6 col-lg-3">
+          <div className="col-12 col-md-4">
             <h2 className="display-4 fw-bold text-gold mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
               <AnimatedCounter target="1" duration="1000" />
             </h2>

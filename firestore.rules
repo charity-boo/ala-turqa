@@ -22,10 +22,12 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Anyone can create an order but cannot force paid status
-      allow create: if request.resource.data.paymentStatus != 'paid' && request.resource.data.paymentStatus != 'completed';
-      // Anyone with the unguessable 20-char order ID can read it for live tracking
-      allow get: if true;
+      // Anyone can create an order but must be pending, not paid
+      allow create: if request.resource.data.paymentStatus == 'pending' 
+                    && (request.resource.data.status == 'pending' || request.resource.data.orderStatus == 'pending');
+      
+      // Tracking endpoint will be used instead of direct get
+      allow get: if (isAuthenticated() && request.auth.uid == resource.data.userId) || isAdmin();
       allow list: if (isAuthenticated() && request.auth.uid == resource.data.userId) || isAdmin();
       allow update, delete: if isAdmin();
     }
@@ -48,6 +50,11 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update: if isAdmin();
       allow create, delete: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
 
     match /users/{userId} {

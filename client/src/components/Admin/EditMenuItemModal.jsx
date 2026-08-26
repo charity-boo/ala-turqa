@@ -12,9 +12,6 @@ const EditMenuItemModal = ({ item, onClose, onUpdate, categories = [] }) => {
     price: item.price || '',
     description: item.description || '',
     preparationTime: item.preparationTime || '',
-    featured: item.featured || false,
-    popular: item.popular || false,
-    vegetarian: item.vegetarian || false,
     spicy: item.spicy || false,
     available: item.available !== undefined ? item.available : true
   });
@@ -112,18 +109,6 @@ const EditMenuItemModal = ({ item, onClose, onUpdate, categories = [] }) => {
                 </div>
                 
                 <div className="col-12 d-flex flex-wrap gap-4 mt-4">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="editFeatured" name="featured" checked={formData.featured} onChange={handleChange} />
-                    <label className="form-check-label" htmlFor="editFeatured">Featured</label>
-                  </div>
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="editPopular" name="popular" checked={formData.popular} onChange={handleChange} />
-                    <label className="form-check-label" htmlFor="editPopular">Popular</label>
-                  </div>
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="editVegetarian" name="vegetarian" checked={formData.vegetarian} onChange={handleChange} />
-                    <label className="form-check-label" htmlFor="editVegetarian">Vegetarian</label>
-                  </div>
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" id="editSpicy" name="spicy" checked={formData.spicy} onChange={handleChange} />
                     <label className="form-check-label" htmlFor="editSpicy">Spicy</label>

@@ -1,4 +1,4 @@
-import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock, FaWhatsapp } from 'react-icons/fa';
 
 const ContactInfo = () => {
   return (
@@ -9,7 +9,7 @@ const ContactInfo = () => {
         <div className="text-gold fs-4 me-3 mt-1"><FaMapMarkerAlt /></div>
         <div>
           <h6 className="text-white mb-1">Address</h6>
-          <p className="text-muted mb-0">Safari Park Business Arcade<br />Thika Road, Nairobi, Kenya</p>
+          <p className="text-muted mb-0">Safari Business Arcade<br />Thika Road, Nairobi, Kenya</p>
         </div>
       </div>
 
@@ -17,7 +17,19 @@ const ContactInfo = () => {
         <div className="text-gold fs-4 me-3 mt-1"><FaPhoneAlt /></div>
         <div>
           <h6 className="text-white mb-1">Phone Number</h6>
-          <p className="text-muted mb-0">+254 700 000 000<br />+254 711 111 111</p>
+          <p className="text-muted mb-0">0140628102</p>
+        </div>
+      </div>
+
+      <div className="d-flex align-items-start mb-4">
+        <div className="text-gold fs-4 me-3 mt-1"><FaWhatsapp /></div>
+        <div>
+          <h6 className="text-white mb-1">WhatsApp</h6>
+          <p className="text-muted mb-0">
+            <a href="https://wa.me/254140628102" target="_blank" rel="noopener noreferrer" className="text-muted text-decoration-none hover-gold" style={{ transition: 'color 0.3s ease' }}>
+              0140628102
+            </a>
+          </p>
         </div>
       </div>
 

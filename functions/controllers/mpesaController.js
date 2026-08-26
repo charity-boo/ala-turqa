@@ -3,6 +3,25 @@ const { db } = require('../config/firebase');
 const admin = require('firebase-admin');
 const { normalizePhoneNumber } = require('../utils/mpesaHelpers');
 
+/**
+ * Read the M-Pesa environment from Firestore settings (admin-toggleable).
+ * Falls back to the MPESA_ENV secret / 'sandbox' if the doc doesn't exist.
+ */
+const getMpesaEnv = async () => {
+  try {
+    const settingsDoc = await db.collection('settings').doc('mpesa').get();
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      if (data.env === 'production' || data.env === 'sandbox') {
+        return data.env;
+      }
+    }
+  } catch (err) {
+    console.warn('[M-Pesa] Could not read Firestore settings/mpesa, falling back to env secret:', err.message);
+  }
+  return null; // let the config default apply
+};
+
 const initiateStkPush = async (req, res) => {
   try {
     const { orderId, phone, amount } = req.body;
@@ -57,11 +76,14 @@ const initiateStkPush = async (req, res) => {
       return res.status(400).json({ error: 'Amount mismatch detected' });
     }
 
+    // 5. Read admin-configurable environment from Firestore
+    const envOverride = await getMpesaEnv();
+
     // Add logging
-    console.info(`[M-Pesa] STK Push request received for Order: ${orderId}, Authoritative Amount: ${authoritativeAmount}`);
+    console.info(`[M-Pesa] STK Push request received for Order: ${orderId}, Authoritative Amount: ${authoritativeAmount}, Env: ${envOverride || 'default'}`);
 
     // Call Daraja API using the authoritative amount
-    const response = await mpesaService.sendStkPush(phone, authoritativeAmount, orderId);
+    const response = await mpesaService.sendStkPush(phone, authoritativeAmount, orderId, envOverride);
     
     console.info(`[M-Pesa] STK Push initiated successfully. CheckoutRequestID: ${response.CheckoutRequestID}`);
 
@@ -82,6 +104,7 @@ const initiateStkPush = async (req, res) => {
       transactionDate: null,
       resultCode: null,
       resultDescription: null,
+      environment: envOverride || 'sandbox',
       createdAt: new Date(),
       updatedAt: new Date()
     });
@@ -289,7 +312,74 @@ const handleCallback = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/payment/mpesa/settings
+ * Returns the current M-Pesa environment setting for the admin dashboard.
+ */
+const getSettings = async (req, res) => {
+  try {
+    const settingsDoc = await db.collection('settings').doc('mpesa').get();
+    const data = settingsDoc.exists ? settingsDoc.data() : { env: 'sandbox' };
+    res.status(200).json({
+      env: data.env || 'sandbox',
+      updatedAt: data.updatedAt || null,
+      updatedBy: data.updatedBy || null
+    });
+  } catch (error) {
+    console.error('[M-Pesa] Error reading settings:', error.message);
+    res.status(500).json({ error: 'Failed to read M-Pesa settings' });
+  }
+};
+
+/**
+ * PUT /api/payment/mpesa/settings
+ * Updates the M-Pesa environment (sandbox/production). Admin-only.
+ */
+const updateSettings = async (req, res) => {
+  try {
+    const { env } = req.body;
+    
+    if (!env || !['sandbox', 'production'].includes(env)) {
+      return res.status(400).json({ error: 'Invalid environment. Must be "sandbox" or "production".' });
+    }
+
+    // Verify admin token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    
+    // Check admin claim
+    if (!decodedToken.admin && !decodedToken.role) {
+      return res.status(403).json({ error: 'Forbidden: Admin access required' });
+    }
+
+    await db.collection('settings').doc('mpesa').set({
+      env,
+      updatedAt: new Date(),
+      updatedBy: decodedToken.uid
+    }, { merge: true });
+
+    console.info(`[M-Pesa] Environment switched to ${env} by ${decodedToken.email || decodedToken.uid}`);
+
+    res.status(200).json({ 
+      message: `M-Pesa environment switched to ${env}`,
+      env 
+    });
+  } catch (error) {
+    console.error('[M-Pesa] Error updating settings:', error.message);
+    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+      return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
+    }
+    res.status(500).json({ error: 'Failed to update M-Pesa settings' });
+  }
+};
+
 module.exports = {
   initiateStkPush,
-  handleCallback
+  handleCallback,
+  getSettings,
+  updateSettings
 };

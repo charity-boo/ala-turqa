@@ -7,6 +7,10 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -89,6 +93,32 @@ export const logoutUser = async () => {
     await signOut(auth);
   } catch (error) {
     console.error('Error during logout:', error);
+    throw new Error(getAuthErrorMessage(error), { cause: error });
+  }
+};
+
+export const updateUserProfile = async (displayName, photoURL) => {
+  if (!auth.currentUser) throw new Error('No authenticated user');
+  try {
+    await updateProfile(auth.currentUser, { displayName, photoURL });
+    return auth.currentUser;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw new Error(getAuthErrorMessage(error), { cause: error });
+  }
+};
+
+export const changeUserPassword = async (currentPassword, newPassword) => {
+  if (!auth.currentUser) throw new Error('No authenticated user');
+  try {
+    // Re-authenticate first
+    const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+    await reauthenticateWithCredential(auth.currentUser, credential);
+    
+    // Update password
+    await updatePassword(auth.currentUser, newPassword);
+  } catch (error) {
+    console.error('Error changing password:', error);
     throw new Error(getAuthErrorMessage(error), { cause: error });
   }
 };

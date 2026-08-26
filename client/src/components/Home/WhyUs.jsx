@@ -2,7 +2,6 @@ import { FaCheckCircle } from 'react-icons/fa';
 
 const WhyUs = () => {
   const points = [
-    "High customer ratings across platforms",
     "Authentic Turkish taste & traditional recipes",
     "Fresh ingredients sourced daily",
     "Warm, luxurious dining experience"

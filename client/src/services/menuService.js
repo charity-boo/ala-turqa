@@ -100,12 +100,14 @@ export const searchMenuItems = async (searchTerm) => {
     const menuRef = collection(db, COLLECTION_NAME);
     const snapshot = await getDocs(menuRef);
     const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    if (!searchTerm) return items;
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return items.filter(item => 
-      item.name.toLowerCase().includes(lowerSearchTerm) || 
-      (item.description && item.description.toLowerCase().includes(lowerSearchTerm))
-    );
+    if (!searchTerm || !searchTerm.trim()) return items;
+    const lowerSearchTerm = searchTerm.trim().toLowerCase();
+    return items.filter(item => {
+      const name = (item.name || item.title || '').toLowerCase();
+      const desc = (item.description || '').toLowerCase();
+      const cat = (item.category || '').toLowerCase();
+      return name.includes(lowerSearchTerm) || desc.includes(lowerSearchTerm) || cat.includes(lowerSearchTerm);
+    });
   } catch (error) {
     console.error("Error searching menu items: ", error);
     throw error;

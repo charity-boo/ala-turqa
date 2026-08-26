@@ -12,6 +12,7 @@ export const ROLE_LABELS = {
   [ADMIN_ROLES.MANAGER]: 'Manager',
   [ADMIN_ROLES.KITCHEN]: 'Kitchen',
   [ADMIN_ROLES.CASHIER]: 'Cashier',
+  [ADMIN_ROLES.STAFF]: 'Staff',
 };
 
 export const ADMIN_NAV_ITEMS = [
@@ -20,10 +21,11 @@ export const ADMIN_NAV_ITEMS = [
   { key: 'menu', label: 'Menu', path: '/admin/menu', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER] },
   { key: 'categories', label: 'Categories', path: '/admin/categories', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER] },
   { key: 'customers', label: 'Customers', path: '/admin/customers', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER, ADMIN_ROLES.CASHIER] },
+  { key: 'staff', label: 'Staff Management', path: '/admin/staff', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN] },
   { key: 'deliveries', label: 'Deliveries', path: '/admin/deliveries', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER] },
   { key: 'payments', label: 'Payments', path: '/admin/payments', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.CASHIER] },
   { key: 'notifications', label: 'Notifications', path: '/admin/notifications', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER, ADMIN_ROLES.KITCHEN] },
-  { key: 'reports', label: 'Reports', path: '/admin/reports', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER] },
+  { key: 'reports', label: 'Analytics', path: '/admin/analytics', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MANAGER] },
   { key: 'settings', label: 'Settings', path: '/admin/settings', roles: [ADMIN_ROLES.OWNER, ADMIN_ROLES.ADMIN] },
 ];
 

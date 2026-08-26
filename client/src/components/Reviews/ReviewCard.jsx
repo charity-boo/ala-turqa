@@ -1,4 +1,4 @@
-import RatingStars from './RatingStars';
+
 import { FaUserCircle } from 'react-icons/fa';
 
 const ReviewCard = ({ review }) => {
@@ -17,7 +17,7 @@ const ReviewCard = ({ review }) => {
             <small className="text-muted">{dateStr}</small>
           </div>
         </div>
-        <RatingStars rating={review.rating} />
+
       </div>
       
       <p className="text-light opacity-75 mb-0" style={{ lineHeight: '1.6' }}>
