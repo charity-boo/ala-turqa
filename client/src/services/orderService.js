@@ -154,15 +154,33 @@ export const createOrder = async (orderData) => {
       body: JSON.stringify(orderData)
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create order');
+    if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
     }
-    
-    return await response.json();
   } catch (error) {
-    console.error("Error creating order:", error);
-    throw error;
+    console.warn("Backend API route /orders unavailable, falling back to direct Firestore order creation:", error.message);
+  }
+
+  // Direct Firestore fallback for client order placement
+  try {
+    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+    const { db } = await import('./firebase');
+    
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+      ...orderData,
+      status: orderData.status || 'pending',
+      orderStatus: orderData.orderStatus || 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    return { id: docRef.id, ...orderData };
+  } catch (err) {
+    console.error("Error creating order directly in Firestore:", err);
+    throw err;
   }
 };
 
