@@ -79,13 +79,29 @@ const initiateStkPush = async (req, res) => {
     // 5. Read admin-configurable environment from Firestore
     const envOverride = await getMpesaEnv();
 
-    // Add logging
-    console.info(`[M-Pesa] STK Push request received for Order: ${orderId}, Authoritative Amount: ${authoritativeAmount}, Env: ${envOverride || 'default'}`);
+    // Enhanced request logging
+    console.info(`[M-Pesa] STK Push Request Received:
+      - Order ID: ${orderId} (Ref: ${orderData.orderNumber || 'N/A'})
+      - Customer Name: ${orderData.customerName || 'N/A'}
+      - Phone Number: ${phone}
+      - Email: ${orderData.email || 'None'}
+      - Delivery Method: ${orderData.deliveryMethod || 'Delivery'} (${orderData.deliveryProvider || 'N/A'})
+      - Items Count: ${orderData.items?.length || 0}
+      - Authoritative Amount: KES ${authoritativeAmount}
+      - Environment: ${envOverride || 'default (sandbox)'}
+    `);
 
     // Call Daraja API using the authoritative amount
     const response = await mpesaService.sendStkPush(phone, authoritativeAmount, orderId, envOverride);
     
-    console.info(`[M-Pesa] STK Push initiated successfully. CheckoutRequestID: ${response.CheckoutRequestID}`);
+    console.info(`[M-Pesa] STK Push Initiated Successfully:
+      - Order ID: ${orderId}
+      - CheckoutRequestID: ${response.CheckoutRequestID}
+      - MerchantRequestID: ${response.MerchantRequestID}
+      - ResponseCode: ${response.ResponseCode}
+      - ResponseDescription: ${response.ResponseDescription}
+      - CustomerMessage: ${response.CustomerMessage || 'N/A'}
+    `);
 
     const normalizedPhone = normalizePhoneNumber(phone);
     const paymentsRef = db.collection('payments');
@@ -120,7 +136,7 @@ const initiateStkPush = async (req, res) => {
       mpesaReceiptNumber: null
     });
 
-    console.info(`[M-Pesa] Payment intent stored in Firestore for CheckoutRequestID: ${response.CheckoutRequestID}`);
+    console.info(`[M-Pesa] Payment Intent & Audit Event stored in Firestore for CheckoutRequestID: ${response.CheckoutRequestID}`);
 
     res.status(200).json({
       message: 'STK Push initiated successfully. Please check your phone.',
@@ -236,6 +252,15 @@ const handleCallback = async (req, res) => {
           return;
         }
 
+        console.info(`[M-Pesa Callback Success] Payment Completed:
+          - Order ID: ${orderId}
+          - CheckoutRequestID: ${checkoutRequestId}
+          - M-Pesa Receipt: ${receiptNumber}
+          - Amount: KES ${amount}
+          - Phone: ${phoneNumber}
+          - Date: ${transactionDate}
+        `);
+
         transaction.update(paymentDocRef, {
           status: 'completed',
           resultCode,
@@ -273,6 +298,14 @@ const handleCallback = async (req, res) => {
 
       } else {
         const finalStatus = resultCode === 1032 ? 'cancelled' : 'failed';
+        console.warn(`[M-Pesa Callback Failed/Cancelled]:
+          - Order ID: ${orderId}
+          - CheckoutRequestID: ${checkoutRequestId}
+          - ResultCode: ${resultCode}
+          - ResultDesc: ${resultDesc}
+          - Final Status Set: ${finalStatus}
+        `);
+
         transaction.update(paymentDocRef, {
           status: finalStatus,
           resultCode,
@@ -282,7 +315,7 @@ const handleCallback = async (req, res) => {
 
         if (orderDoc.exists) {
           transaction.update(orderRef, {
-            paymentStatus: 'failed',
+            paymentStatus: finalStatus,
             checkoutRequestId: checkoutRequestId,
             updatedAt: new Date()
           });
@@ -302,7 +335,7 @@ const handleCallback = async (req, res) => {
       }
     });
 
-    console.info(`[M-Pesa] Transaction completed successfully for CheckoutRequestID: ${checkoutRequestId}`);
+    console.info(`[M-Pesa] Transaction callback processed & recorded for CheckoutRequestID: ${checkoutRequestId}`);
     res.status(200).json({ message: 'Callback processed successfully' });
 
   } catch (error) {

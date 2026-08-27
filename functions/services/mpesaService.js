@@ -66,7 +66,17 @@ class MpesaService {
       TransactionDesc: `Payment for order ${orderId}`
     };
 
-    console.info(`[M-Pesa] STK Push request — Env: ${envOverride || mpesaConfig.env}, Type: ${data.TransactionType}, BusinessShortCode: ${data.BusinessShortCode}, PartyB: ${data.PartyB}`);
+    console.info(`[M-Pesa] Outbound Daraja API STK Push:
+      - Target URL: ${url}
+      - Environment: ${envOverride || mpesaConfig.env}
+      - TransactionType: ${data.TransactionType}
+      - BusinessShortCode (Store): ${data.BusinessShortCode}
+      - PartyB (Till/Shortcode): ${data.PartyB}
+      - Amount: KES ${data.Amount}
+      - Phone Number: ${normalizedPhone}
+      - AccountReference: ${data.AccountReference}
+      - CallbackURL: ${data.CallBackURL}
+    `);
 
     try {
       const response = await axios.post(url, data, {
