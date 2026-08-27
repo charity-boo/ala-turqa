@@ -1,6 +1,6 @@
 import { auth } from "./firebase";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const getAuthHeaders = async () => {
   if (!auth.currentUser) throw new Error("Not authenticated");
@@ -11,16 +11,28 @@ const getAuthHeaders = async () => {
   };
 };
 
+const handleApiResponse = async (response, defaultErrorMsg) => {
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+
+  if (!response.ok) {
+    if (isJson) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || defaultErrorMsg);
+    }
+    throw new Error(`${defaultErrorMsg} (${response.status})`);
+  }
+
+  if (isJson) {
+    return await response.json();
+  }
+  throw new Error("Invalid response format from server");
+};
+
 export const getStaffMembers = async () => {
   const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/admin/staff`, { headers });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch staff members');
-  }
-  
-  return await response.json();
+  return handleApiResponse(response, 'Failed to fetch staff members');
 };
 
 export const createStaffMember = async (staffData) => {
@@ -30,11 +42,5 @@ export const createStaffMember = async (staffData) => {
     headers,
     body: JSON.stringify(staffData)
   });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to create staff member');
-  }
-  
-  return await response.json();
+  return handleApiResponse(response, 'Failed to create staff member');
 };

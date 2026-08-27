@@ -23,12 +23,27 @@ export const initiateStkPush = async (orderId, phone, amount) => {
       body: JSON.stringify({ orderId, phone, amount }),
     });
 
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to initiate STK push');
+      let errorMessage = `Payment request failed (${response.status})`;
+      if (isJson) {
+        const errorData = await response.json().catch(() => ({}));
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } else {
+        const text = await response.text().catch(() => '');
+        console.error('[M-Pesa Service] Non-JSON error response from server:', text);
+        errorMessage = `Payment backend unavailable (${response.status}). Please try again or contact support.`;
+      }
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    if (isJson) {
+      return await response.json();
+    } else {
+      throw new Error('Invalid response format from payment server');
+    }
   } catch (error) {
     console.error('STK Push Request Error:', error);
     throw error;

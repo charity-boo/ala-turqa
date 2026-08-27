@@ -11,11 +11,22 @@ const withAuthHeaders = async () => {
 };
 
 const parseJsonResponse = async (response) => {
-  const payload = await response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  
   if (!response.ok) {
-    throw new Error(payload?.error || 'Request failed');
+    if (isJson) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || `Request failed (${response.status})`);
+    }
+    const text = await response.text().catch(() => '');
+    throw new Error(`Server error (${response.status}): ${text.slice(0, 100) || 'Request failed'}`);
   }
-  return payload;
+  
+  if (isJson) {
+    return await response.json();
+  }
+  throw new Error('Invalid JSON response from server');
 };
 
 export const getAdminUsers = async () => {
