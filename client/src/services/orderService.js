@@ -146,29 +146,6 @@ export const updateOrderStatus = async (orderId, newStatus) => {
  */
 export const createOrder = async (orderData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderData)
-    });
-    
-    if (response.ok) {
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-    }
-  } catch (error) {
-    console.warn("Backend API route /orders unavailable, falling back to direct Firestore order creation:", error.message);
-  }
-
-  // Direct Firestore fallback for client order placement
-  try {
-    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-    const { db } = await import('./firebase');
-    
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...orderData,
       status: orderData.status || 'pending',

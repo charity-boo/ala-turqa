@@ -16,6 +16,42 @@ router.get('/health', (req, res) => {
   res.json({ status: 'Ala Turqa API running' });
 });
 
+router.get('/tracking/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    let orderDoc = await db.collection('orders').doc(orderId).get();
+    
+    if (!orderDoc.exists) {
+      const snap = await db.collection('orders').where('publicTrackingId', '==', orderId).limit(1).get();
+      if (!snap.empty) {
+        orderDoc = snap.docs[0];
+      }
+    }
+
+    if (!orderDoc.exists) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const data = orderDoc.data();
+    res.json({
+      id: orderDoc.id,
+      orderNumber: data.orderNumber || orderDoc.id.slice(-6).toUpperCase(),
+      customerName: data.customerName || data.name || 'Valued Customer',
+      status: data.orderStatus || data.status || 'new',
+      deliveryMethod: data.deliveryMethod || 'Delivery',
+      deliveryProvider: data.deliveryProvider || '',
+      paymentMethod: data.paymentMethod || 'M-Pesa',
+      paymentStatus: data.paymentStatus || 'pending',
+      mpesaReceiptNumber: data.mpesaReceiptNumber || null,
+      total: data.total || data.totalAmount || 0,
+      createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : new Date()
+    });
+  } catch (err) {
+    console.error('Error fetching tracking data:', err);
+    res.status(500).json({ error: 'Failed to retrieve tracking data' });
+  }
+});
+
 // Handle both Cloud Functions direct invocations (which strip /api) 
 // and Firebase Hosting rewrites (which preserve /api)
 app.use('/', router);
