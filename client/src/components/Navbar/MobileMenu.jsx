@@ -3,7 +3,7 @@ import { FaUserCircle, FaSignOutAlt, FaHistory, FaTimes, FaStar, FaExclamationTr
 import useAuth from '../../hooks/useAuth';
 
 const MobileMenu = ({ isOpen, setIsOpen }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLinkClick = () => setIsOpen(false);
@@ -17,8 +17,6 @@ const MobileMenu = ({ isOpen, setIsOpen }) => {
       console.error('Logout failed:', error);
     }
   };
-
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'admin@alaturqa.com';
 
   return (
     <>

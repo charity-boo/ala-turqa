@@ -9,6 +9,7 @@ import GoogleMapPicker from '../../components/GoogleMapPicker';
 import { generateOrderNumber } from '../../utils/idGenerator';
 import { parseBasePrice } from '../../utils/priceFormatter';
 import { useContext, useEffect, useRef } from 'react';
+import { fetchUserProfile } from '../../services/userService';
 
 const Checkout = () => {
   const { cart, calculateSubtotal, calculateTotal, clearCart } = useCart();
@@ -21,12 +22,33 @@ const Checkout = () => {
   const abortControllerRef = useRef(null);
 
   useEffect(() => {
+    const loadCustomerProfile = async () => {
+      if (currentUser) {
+        setFormData(prev => ({
+          ...prev,
+          customerName: prev.customerName || currentUser.displayName || '',
+          email: prev.email || currentUser.email || ''
+        }));
+        const profile = await fetchUserProfile(currentUser.uid);
+        if (profile) {
+          setFormData(prev => ({
+            ...prev,
+            customerName: profile.displayName || currentUser.displayName || prev.customerName,
+            email: currentUser.email || prev.email,
+            phone: profile.phone || prev.phone,
+            landmark: profile.landmark || prev.landmark
+          }));
+        }
+      }
+    };
+    loadCustomerProfile();
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, [currentUser]);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -35,7 +57,7 @@ const Checkout = () => {
     landmark: '',
     orderType: 'Delivery', // Delivery or Pickup
     deliveryProvider: 'Vipi', // Vipi or Glovo
-    paymentMethod: 'M-Pesa', // M-Pesa
+    paymentMethod: 'M-Pesa', // M-Pesa or Cash
     notes: '',
     deliveryLocation: null // { latitude, longitude, formattedAddress }
   });
@@ -50,6 +72,44 @@ const Checkout = () => {
     setExistingOrder(null);
   };
 
+  const getConstructedLocation = () => {
+    if (formData.orderType !== 'Delivery') return null;
+    return {
+      latitude: formData.deliveryLocation?.latitude ? Number(formData.deliveryLocation.latitude) : -1.286389,
+      longitude: formData.deliveryLocation?.longitude ? Number(formData.deliveryLocation.longitude) : 36.817223,
+      formattedAddress: formData.deliveryLocation?.formattedAddress || formData.landmark || 'Nairobi, Kenya',
+      landmark: formData.landmark || ''
+    };
+  };
+
+  const getConstructedPayload = () => {
+    return {
+      orderNumber: existingOrder?.orderNumber || generateOrderNumber(),
+      userId: currentUser?.uid || null,
+      customerName: formData.customerName || 'Customer',
+      phone: formData.phone || '',
+      email: formData.email || '',
+      deliveryMethod: formData.orderType,
+      deliveryProvider: formData.orderType === 'Delivery' ? formData.deliveryProvider : null,
+      deliveryLocation: getConstructedLocation(),
+      paymentMethod: formData.paymentMethod,
+      notes: formData.notes || '',
+      items: cart.map(item => ({
+        menuId: item.id,
+        menuSlug: item.id,
+        itemName: item.name,
+        price: parseBasePrice(item.price),
+        quantity: item.quantity,
+        notes: item.specialInstructions || '',
+        image: item.image || null
+      })),
+      subtotal,
+      deliveryFee: DELIVERY_FEE,
+      total,
+      createdAt: new Date().toISOString()
+    };
+  };
+
   const validateForm = () => {
     if (!formData.customerName.trim()) return "Name is required.";
     if (!formData.phone.trim()) return "Phone number is required.";
@@ -58,8 +118,8 @@ const Checkout = () => {
     if (!phoneRegex.test(formData.phone.replace(/\s+/g, ''))) return "Please enter a valid Kenyan phone number.";
     
     if (formData.orderType === 'Delivery') {
-      if (!formData.deliveryLocation || !formData.deliveryLocation.latitude || !formData.deliveryLocation.longitude) {
-        return "Please select a valid delivery location on the map.";
+      if (!formData.deliveryLocation && !formData.landmark) {
+        return "Please select a delivery location on the map or provide a landmark.";
       }
     }
 
@@ -89,38 +149,10 @@ const Checkout = () => {
     setLoading(true);
     setError(null);
 
-    const orderData = {
-      orderNumber: generateOrderNumber(),
-      userId: currentUser?.uid || null,
-      customerName: formData.customerName,
-      phone: formData.phone,
-      email: formData.email,
-      deliveryMethod: formData.orderType,
-      deliveryProvider: formData.orderType === 'Delivery' ? formData.deliveryProvider : null,
-      deliveryLocation: formData.orderType === 'Delivery' ? {
-        latitude: formData.deliveryLocation.latitude,
-        longitude: formData.deliveryLocation.longitude,
-        formattedAddress: formData.deliveryLocation.formattedAddress || `Lat: ${formData.deliveryLocation.latitude}, Lng: ${formData.deliveryLocation.longitude}`,
-        landmark: formData.landmark || ''
-      } : null,
-      paymentMethod: formData.paymentMethod,
-      notes: formData.notes || '',
-      items: cart.map(item => ({
-        menuId: item.id,
-        menuSlug: item.id, // the ID will be the slug after migration
-        itemName: item.name,
-        price: parseBasePrice(item.price),
-        quantity: item.quantity,
-        notes: item.specialInstructions || '',
-        image: item.image || null
-      })),
-      subtotal,
-      deliveryFee: DELIVERY_FEE,
-      total
-    };
+    const orderData = getConstructedPayload();
 
     try {
-      // 1. Save the order to Firestore first
+      // 1. Save order to Firestore
       let savedOrder = existingOrder;
       if (!savedOrder) {
         savedOrder = await createOrder({
@@ -146,7 +178,8 @@ const Checkout = () => {
           clearTimeout(abortControllerRef.current);
           clearCart();
           setPaymentStatus(null);
-          navigate('/track/' + savedOrder.trackingId, { state: { order: { ...savedOrder, paymentStatus: 'paid', mpesaReceiptNumber: finalDoc.mpesaReceiptNumber, paymentMethod: 'M-Pesa' } } });
+          const targetId = savedOrder.trackingId || savedOrder.id;
+          navigate('/track/' + targetId, { state: { order: { ...savedOrder, paymentStatus: 'paid', mpesaReceiptNumber: finalDoc.mpesaReceiptNumber, paymentMethod: 'M-Pesa' } } });
         } else if (finalDoc.status === 'cancelled') {
           setError("Payment cancelled. No payment was made.");
           setPaymentStatus(null);
@@ -157,18 +190,18 @@ const Checkout = () => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       } else {
-        // Bypass M-Pesa for testing/cash
+        // Bypass M-Pesa for cash / other options
         clearCart();
-        navigate('/track/' + savedOrder.trackingId, { state: { order: { ...savedOrder, paymentMethod: formData.paymentMethod } } });
+        const targetId = savedOrder.trackingId || savedOrder.id;
+        navigate('/track/' + targetId, { state: { order: { ...savedOrder, paymentMethod: formData.paymentMethod } } });
       }
     } catch (err) {
       console.error("Checkout Error:", err);
       if (err.code === 'ABORTED') {
-        // Component unmounted, ignore
         return;
       }
       if (err.message === 'TIMEOUT' || err.code === 'TIMEOUT') {
-        setError("Payment confirmation timed out. Please check your M-Pesa messages to confirm if payment was made. You can retry the checkout or contact support if you were charged.");
+        setError("Payment confirmation timed out. Please check your M-Pesa messages to confirm if payment was made.");
       } else {
         setError(err.message || "Failed to process order. Please try again.");
       }
@@ -254,18 +287,23 @@ const Checkout = () => {
                 </>
               )}
 
-              <h4 className="mt-5 mb-4" style={{ fontFamily: '"Playfair Display", serif', color: '#C9A227' }}>Payment Method</h4>
+              <h4 className="mt-5 mb-3" style={{ fontFamily: '"Playfair Display", serif', color: '#C9A227' }}>Payment Method</h4>
               <div className="mb-4">
-                <div className="d-flex flex-wrap gap-4">
-                  <div className="form-check">
-                    <input className="form-check-input" type="radio" name="paymentMethod" id="mpesa" value="M-Pesa" checked={formData.paymentMethod === 'M-Pesa'} onChange={handleInputChange} />
-                    <label className="form-check-label" htmlFor="mpesa"><FaMobileAlt className="me-2"/>Pay via M-Pesa</label>
+                <div className="d-flex flex-column gap-3">
+                  <div className="form-check p-3 rounded bg-dark border border-secondary">
+                    <input className="form-check-input ms-0 me-2" type="radio" name="paymentMethod" id="mpesa" value="M-Pesa" checked={formData.paymentMethod === 'M-Pesa'} onChange={handleInputChange} />
+                    <label className="form-check-label text-white fw-bold" htmlFor="mpesa">
+                      <FaMobileAlt className="me-2 text-success"/>Pay via M-Pesa (STK Push)
+                    </label>
                   </div>
-                  <div className="form-check">
-                    <input className="form-check-input" type="radio" name="paymentMethod" id="cash" value="Cash" checked={formData.paymentMethod === 'Cash'} onChange={handleInputChange} />
-                    <label className="form-check-label" htmlFor="cash"><FaMoneyBillWave className="me-2"/>Cash / Pay on Delivery (Test Mode)</label>
+
+                  <div className="form-check p-3 rounded bg-dark border border-secondary">
+                    <input className="form-check-input ms-0 me-2" type="radio" name="paymentMethod" id="cash" value="Cash" checked={formData.paymentMethod === 'Cash'} onChange={handleInputChange} />
+                    <label className="form-check-label text-white fw-bold" htmlFor="cash">
+                      <FaMoneyBillWave className="me-2 text-warning"/>Cash / Pay on Delivery
+                    </label>
                   </div>
-                  </div>
+                </div>
               </div>
 
               <div className="mb-4">

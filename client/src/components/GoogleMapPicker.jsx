@@ -42,13 +42,19 @@ const GoogleMapPicker = ({ onLocationSelect, initialLocation }) => {
     await reverseGeocode(lat, lng);
   }, []);
 
+  const sanitizeAddress = (rawAddress) => {
+    if (!rawAddress) return '';
+    // Strip Google Plus Code (e.g. "PR9C+GH2, Waiyaki Wy, Nairobi, Kenya" -> "Waiyaki Wy, Nairobi, Kenya")
+    return rawAddress.replace(/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4},\s*/i, '').trim();
+  };
+
   const reverseGeocode = async (lat, lng) => {
     if (!window.google) return;
     const geocoder = new window.google.maps.Geocoder();
     try {
       const response = await geocoder.geocode({ location: { lat, lng } });
       if (response.results && response.results[0]) {
-        const formattedAddress = response.results[0].formatted_address;
+        const formattedAddress = sanitizeAddress(response.results[0].formatted_address);
         setAddress(formattedAddress);
         onLocationSelect({
           latitude: lat,
@@ -76,7 +82,7 @@ const GoogleMapPicker = ({ onLocationSelect, initialLocation }) => {
         const result = response.results[0];
         const lat = result.geometry.location.lat();
         const lng = result.geometry.location.lng();
-        const formattedAddress = result.formatted_address || address.trim();
+        const formattedAddress = sanitizeAddress(result.formatted_address || address.trim());
 
         setMarkerPos({ lat, lng });
         setAddress(formattedAddress);

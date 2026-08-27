@@ -3,7 +3,7 @@ import { FaUserCircle, FaHistory, FaSignOutAlt, FaChartLine } from 'react-icons/
 import useAuth from '../../hooks/useAuth';
 
 const UserDropdown = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -15,11 +15,9 @@ const UserDropdown = () => {
     }
   };
 
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'admin@alaturqa.com';
-
   if (!currentUser) {
     return (
-      <Link to="/login" className="nav-icon-btn mx-2 text-decoration-none">
+      <Link to="/login" className="nav-icon-btn mx-2 text-decoration-none" title="Sign In / Register">
         <FaUserCircle />
       </Link>
     );

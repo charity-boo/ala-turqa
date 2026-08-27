@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -16,6 +16,11 @@ import Cart from './pages/Cart/Cart';
 import Checkout from './pages/Checkout/Checkout';
 import OrderTracking from './pages/OrderTracking/OrderTracking';
 import NotFound from './pages/NotFound';
+import CustomerAuth from './pages/Customer/CustomerAuth';
+import Profile from './pages/Customer/Profile';
+import MyOrders from './pages/Customer/MyOrders';
+import CustomerRoute from './components/CustomerRoute';
+
 import ReviewsAdmin from './pages/Admin/ReviewsAdmin';
 import FeedbackAdmin from './pages/Admin/FeedbackAdmin';
 import MenuManagement from './components/Admin/MenuManagement';
@@ -46,9 +51,13 @@ function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="track/:orderId" element={<OrderTracking />} />
+          <Route path="login" element={<CustomerAuth />} />
+          <Route path="profile" element={<CustomerRoute><Profile /></CustomerRoute>} />
+          <Route path="orders" element={<CustomerRoute><MyOrders /></CustomerRoute>} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
+        <Route path="/login" element={<CustomerAuth />} />
         <Route path="/admin/login" element={<Login />} />
         <Route path="/admin/setup" element={<Setup />} />
 
