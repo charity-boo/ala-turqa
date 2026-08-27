@@ -9,7 +9,9 @@ class MpesaService {
    */
   async getAccessToken(envOverride) {
     const { consumerKey, consumerSecret } = mpesaConfig;
-    const url = `${getBaseUrl(envOverride)}/oauth/v1/generate?grant_type=client_credentials`;
+    const effectiveEnv = envOverride || mpesaConfig.env;
+    const baseUrl = getBaseUrl(effectiveEnv);
+    const url = `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`;
     const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
 
     try {
@@ -18,11 +20,16 @@ class MpesaService {
           Authorization: `Basic ${auth}`
         }
       });
-      console.info('[M-Pesa] Daraja authentication successful');
+      console.info(`[M-Pesa] Daraja authentication successful (${effectiveEnv})`);
       return response.data.access_token;
     } catch (error) {
-      console.error('[M-Pesa] Daraja authentication failed:', error.message);
-      throw new Error('Failed to authenticate with M-Pesa');
+      console.error(`[M-Pesa] Daraja authentication failed for env [${effectiveEnv}] at URL: ${url}`);
+      console.error('[M-Pesa] Auth error message:', error.message);
+      if (error.response) {
+        console.error('[M-Pesa] Daraja auth error status:', error.response.status);
+        console.error('[M-Pesa] Daraja auth error data:', JSON.stringify(error.response.data));
+      }
+      throw new Error(`Failed to authenticate with M-Pesa (${effectiveEnv}): ${error?.response?.data?.errorMessage || error.message}`);
     }
   }
 

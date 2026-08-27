@@ -56,7 +56,6 @@ const Checkout = () => {
     email: '',
     landmark: '',
     orderType: 'Delivery', // Delivery or Pickup
-    deliveryProvider: 'Vipi', // Vipi or Glovo
     paymentMethod: 'M-Pesa', // M-Pesa or Cash
     notes: '',
     deliveryLocation: null // { latitude, longitude, formattedAddress }
@@ -90,7 +89,6 @@ const Checkout = () => {
       phone: formData.phone || '',
       email: formData.email || '',
       deliveryMethod: formData.orderType,
-      deliveryProvider: formData.orderType === 'Delivery' ? formData.deliveryProvider : null,
       deliveryLocation: getConstructedLocation(),
       paymentMethod: formData.paymentMethod,
       notes: formData.notes || '',
@@ -264,14 +262,6 @@ const Checkout = () => {
 
               {formData.orderType === 'Delivery' && (
                 <>
-                  <div className="mb-3">
-                    <label className="form-label">Delivery Provider</label>
-                    <select className="form-select bg-dark text-white border-secondary" name="deliveryProvider" value={formData.deliveryProvider} onChange={handleInputChange}>
-                      <option value="Vipi">Vipi Delivery</option>
-                      <option value="Glovo">Glovo</option>
-                    </select>
-                  </div>
-
                   <div className="mb-4">
                     <label className="form-label">Delivery Location *</label>
                     <GoogleMapPicker 

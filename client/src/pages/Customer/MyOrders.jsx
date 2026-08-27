@@ -179,7 +179,7 @@ const MyOrders = () => {
                       <div className="bg-dark p-3 rounded h-100">
                         <div className="mb-2">
                           <small className="text-muted d-block">Delivery Method</small>
-                          <strong className="text-light">{order.deliveryMethod || 'Delivery'} ({order.deliveryProvider || 'Standard'})</strong>
+                          <strong className="text-light">{order.deliveryMethod || 'Delivery'}{order.deliveryProvider ? ` (${order.deliveryProvider})` : ''}</strong>
                         </div>
                         <div className="mb-2">
                           <small className="text-muted d-block">Payment Method</small>
